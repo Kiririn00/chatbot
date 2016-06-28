@@ -1,5 +1,5 @@
 {
-  "name": "chatsample",
+  "name": "chatbotproject",
   "private": true,
   "version": "0.0.0",
   "description": "a Sails application",
@@ -22,7 +22,8 @@
     "rc": "1.0.1",
     "sails": "~0.12.3",
     "sails-disk": "~0.10.9",
-    "sails-hook-autoreload": "^0.13.1"
+    "sails-hook-autoreload": "^0.13.1",
+    "sails-mysql": "^0.11.5"
   },
   "scripts": {
     "debug": "node debug app.js",

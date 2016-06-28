@@ -1,0 +1,28 @@
+<!--this is view -->
+
+<div class="container">
+  <h2>Search Result</h2><br/>
+  <% result = JSON.parse(result);/*change JSON(form controller) to string*/ %>
+  <% var result_length = result.results.bindings.length;/* count object's bindings */ %>
+
+  <% for(var i=0;i<result_length;i++){/* for loop */%>
+  <div class="form-group">
+    <div class="row">
+      <div class="col-md-2 ">
+        <p class="text-center">
+          <%= result.results.bindings[i].spotname.value %><br/><!--show result data -->
+        </p>
+      </div>
+      <div class="col-md-2">
+        <form action="/Spot/SpotContents" method="post">
+          <button name="uri" value="<%= result.results.bindings[i].subject.value %>" type="submit" class="btn btn-primary">
+            Linked Data
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+<%} /*end for loop*/%>
+</div>
+
+

@@ -1,6 +1,7 @@
 /**
- * Created by ASAWAVETVUTT VARIT on 2016/06/23.
+ * Created by ASAWAVETVUTT VARIT on 2016/06/27.
  */
+
 module.exports = {
 
   attributes: {
@@ -10,13 +11,13 @@ module.exports = {
       primaryKey: true,
       unique: true
     },
-    text: {
+    question: {
       type: 'string',
-      size: 300
+      size: 100
     },
-    bot:{
+    answer:{
       type: 'string',
-      size: 300
+      size: 500
     }
   }
 };

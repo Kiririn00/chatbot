@@ -1,0 +1,20 @@
+<!-- this is view -->
+
+<% result = JSON.parse(result);/*change JSON(form controller) to string*/ %>
+<% var result_length = result.results.bindings.length;/* count object's bindings */ %>
+
+<div class="container">
+  <h2>Content of Spot</h2>
+
+  <% for(var i=0;i<result_length;i++){/* for loop */%>
+    <h4>
+      <%= result.results.bindings[i].content.value %><br/><!--show result data -->
+    </h4>
+  <%} /*end for loop*/%>
+
+  <h2>Other Recommend Spot</h2>
+  <a href="#"> 石山寺 </a> <br>
+  <a href="#"> 白髭神社 </a>
+
+</div>
+
