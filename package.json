@@ -1,7 +1,7 @@
 {
   "name": "chatbotproject",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.2",
   "description": "a Sails application",
   "keywords": [],
   "dependencies": {
@@ -19,7 +19,9 @@
     "grunt-sails-linker": "~0.10.1",
     "grunt-sync": "0.2.4",
     "include-all": "~0.1.6",
+    "jquery": "^3.0.0",
     "rc": "1.0.1",
+    "request": "^2.72.0",
     "sails": "~0.12.3",
     "sails-disk": "~0.10.9",
     "sails-hook-autoreload": "^0.13.1",

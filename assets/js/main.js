@@ -36,23 +36,33 @@ socket.on('connect', function() {// if web socket online
 //if send button is push
 $('#chat-send-button').on('click', function () {
 
-    /*
-    This getJSON purpose is for get all of bot answer and question pattern.
-    and this function will use json(parameter name "data") to split to ket and value
-    of JSON. But we will just use about value. After that we will count number of data
-    in JSON and all of value. And we will send all of them to other function
+  var $text = $('#chat-textarea');//get id chat-textarea
+  var msg = $text.val();//put value of text area to variable name msg
+  $text.val('');//clear textarea
 
-    $.getJSON(<chatbot pattern JSON file URL>)
+  $.get('/Chat/TalkSession',
+    {
+      msg: msg
+    }
+  );
 
-     */
-    $.getJSON('/Chat/StopSentence',function(data){//get json from about chat log
+  /*
+  This getJSON purpose is for get all of bot answer and question pattern.
+  and this function will use json(parameter name "data") to split to key and value
+  of JSON. But we will just use about value. After that we will count number of data
+  in JSON and all of value. And we will send all of them to other function
+
+  $.getJSON(<chatbot pattern JSON file URL>)
+  */
+  $.getJSON('/Chat/StopSentence',function(data){//get json from about chat log
       var count = 0;//create variable count for be a parameter when loop
       $.each(data, function(key,value){//split data from json
         console.log(value);//debug value from split
         var length = value.length;// save number of length for what times will loop
         bot_answer(value,length,count);//send all of value to function bot_answer
       });
-    });
+  });//end getJSON
+
   /*
   * this function purpose is for answer question from user
   * the answer and question data will contain in JSON form
@@ -61,11 +71,6 @@ $('#chat-send-button').on('click', function () {
   * */
   function bot_answer(value,length,count)
   {
-
-    var $text = $('#chat-textarea');//get id chat-textarea
-    var msg = $text.val();//put value of text area to variable name msg
-    $text.val('');//clear textarea
-
 
     console.log(value[count].question);//debug show all texts question
     for(var i=0;i<length;i++)//loop by number of array data
@@ -103,7 +108,7 @@ $('#chat-send-button').on('click', function () {
         count++;
       }
     }
-    console.log(count);//debug count that all of loop is done? 
+    console.log(count);//debug count that all of loop is done?
   }//end function
 });//end on click
 

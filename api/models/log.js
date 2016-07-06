@@ -18,6 +18,10 @@ module.exports = {
     answer:{
       type: 'string',
       size: 500
+    },
+    component:{
+      type: 'string',
+      size: 200
     }
   }
 };
