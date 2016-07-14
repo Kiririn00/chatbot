@@ -4,7 +4,6 @@
  * back-end handle socket's request from client
  */
 
-
 module.exports = {
 
   Join: function (req,res) {
@@ -36,13 +35,12 @@ module.exports = {
     if (!req.isSocket) {
       return res.badRequest();
     }
+
     var socket_id = sails.sockets.getId(req.socket);
     var msg = req.param('msg');
 
     sails.sockets.broadcast(socket_id ,{ msg: msg });
 
   }
-
-
 
 };

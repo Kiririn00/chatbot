@@ -2,7 +2,11 @@
  * Created by ASAWAVETVUTT VARIT on 2016/06/21.
  *
  * app.js
- *Front-end code and event handling for charbot
+ * Front-end
+ * handle all feature in client.
+ * Mainly call functions in app.js will mean
+ * to execute feature. It should mainly call function
+ * not coding algorithm.
  */
 
 io.socket.on('connect', function() {// if web socket online
@@ -18,24 +22,26 @@ io.socket.on('connect', function() {// if web socket online
 
     $.get('/Chat/TalkSession',{msg: data.msg},function (data){
 
+      $(".chat").append(
+        //text is detail that bot response
+        '<p class="me"> ' +data.answer + '</p>'
+      );
+
     });
   });
 
+  //make new room when page load
   NewRoom();
 
-  UpdateMessage();
-
+  //request to broadcast to room when send messages.
   $('#chat-send-button').click(SendMessage);
 
-  $('div#clear_message').click({model:"Chat"},RemoveSocketData);
-
-  $('div#clear_room').click({model:"Room"},RemoveSocketData);
-
-  // When the socket disconnects, hide the UI until we reconnect.
+  // When the socket disconnects
   io.socket.on('disconnect', function() {
 
     console.log("socket disconnect");
 
   });
-});//end listen socket
+
+});
 

@@ -2,18 +2,23 @@
  *
  * @description :: Server-side logic for managing Texts
  * @help        :: See http://sailsjs.org/#!/documentation/concepts/Controllers
+ *
+ * ChatController.js
+ * Back-end
+ * calculate chat algorithms. except chat box's action, every action
+ * create in api.
+ * Normally client will send request with GET input to TalkSession,
+ * And TalkSession will pick suit calculate api.
  */
 
-var jquery = require('jquery');
 var request = require('request');
-
-
 
 module.exports = {
 
   Debug: function (req,res) {
 
-    sails.sockets.emit('hi', 'everyone'); // short form    var check = callbackDebug();
+    // short form    var check = callbackDebug();
+    sails.sockets.emit('hi', 'everyone');
 
     res.locals.layout = 'debug_layout';
     return res.view();
@@ -23,12 +28,12 @@ module.exports = {
 	ChatBox: function(req,res){
 
     return res.view();
-  },//end action
+  },
 
   //this is session component, it will handle what component should use
   TalkSession: function(req,res){
-    var err_msg = "Error: no value call to this api or something went wrong";
-    
+    var err_msg = "Don't Understand";
+
     //message in textarea from view (GET)
     if(req.method = 'GET') {
       var msg = req.param('msg');
@@ -37,9 +42,7 @@ module.exports = {
     //debug check message from view
     console.log("Debug data from view: "+msg);
 
-    function setCallback(){
-
-    }
+    function setCallback(){}
 
     function callStopsentence() {
 
@@ -49,7 +52,7 @@ module.exports = {
         json: true
       };
 
-      //Call subsentence API
+      //Call Subsentence API
       request(options, function (err, response, body) {
 
         if (!err && response.statusCode == 200) {
@@ -57,13 +60,13 @@ module.exports = {
           api_res(body.answer);
 
         }
-        else {//HTTP Error
+        else {
           console.log("HTTP Error" + response.statusCode);
         }
 
-      });//end request
-    }//end function CallStopSentence
+      });
 
+    }
 
     //this function is for check input from user(question),
     //which are input are match with component or not match nether.
@@ -86,9 +89,9 @@ module.exports = {
       });
     }
 
-  },//end action
+  },
 
-  //this is component for stop sentence
+  //Stopsentence Component refer from chat bot architecture model
   StopSentence: function (req,res) {
 
     var answer;
@@ -102,7 +105,7 @@ module.exports = {
     //callback function for put data from mySQL to array
     function callbackData(found,i){
 
-    }//end callback function
+    }
 
     //find data from mySQL
     Log.find({}).exec(function find(err, chat_log){
@@ -131,16 +134,13 @@ module.exports = {
         answer: answer
       });
 
-    });//end find function
+    });
 
   },//end action
 
   RegularMatcher: function(){
 
   },
-
-  MultiWord: function (req,res){
-    return res.json();
-  }
+  
 };
 
