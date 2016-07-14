@@ -8,7 +8,16 @@ var jquery = require('jquery');
 var request = require('request');
 
 
+
 module.exports = {
+
+  Debug: function (req,res) {
+
+    sails.sockets.emit('hi', 'everyone'); // short form    var check = callbackDebug();
+
+    res.locals.layout = 'debug_layout';
+    return res.view();
+  },
 
   //show view of chat box(for test chat or debug)
 	ChatBox: function(req,res){
@@ -18,9 +27,8 @@ module.exports = {
 
   //this is session component, it will handle what component should use
   TalkSession: function(req,res){
-
-    var sub_sentence_question = [];
-
+    var err_msg = "Error: no value call to this api or something went wrong";
+    
     //message in textarea from view (GET)
     if(req.method = 'GET') {
       var msg = req.param('msg');
@@ -29,10 +37,10 @@ module.exports = {
     //debug check message from view
     console.log("Debug data from view: "+msg);
 
-    /*if match with stopsentence case will use this function.
-     *This function purpose is send message(user's input)
-     * to stopsentence api and get result
-     */
+    function setCallback(){
+
+    }
+
     function callStopsentence() {
 
       var options = {
@@ -41,14 +49,11 @@ module.exports = {
         json: true
       };
 
-      // function for callback
-      function requestCallback() {}
-
       //Call subsentence API
       request(options, function (err, response, body) {
 
         if (!err && response.statusCode == 200) {
-          requestCallback(body.answer);
+          setCallback();
           api_res(body.answer);
 
         }
@@ -59,44 +64,19 @@ module.exports = {
       });//end request
     }//end function CallStopSentence
 
-    //still not use now
-    function callRegularMatcher(){
 
-    }
+    //this function is for check input from user(question),
+    //which are input are match with component or not match nether.
+    Log.find({ where: { question: msg } }).exec(function find(err, found){
 
-    //Callback function
-    function callbackData(found,i){
-
-    }
-
-    /*
-    this function is for check input from user(question),
-    which are input are match with component or not match nether.
-    */
-    log.find({select:['question']}).exec(function find(err, found){
-
-      for(var i=0;i<found.length;i++){//loop by all record
-        //put mySQL data record to value
-        callbackData(found[i],i);
-
-        sub_sentence_question[i] = found[i].question;
-
-        //console.log(sub_sentence_question[i]);//debug question log from mySQL
-        console.log();
-
-        if(msg == sub_sentence_question[i]){//StopSentence case
-          console.log("debug: StopSentence case");
+        setCallback();
+        //match stopsentence component case
+        if(!err){
           callStopsentence();
-          break;
-        }
-        else if(msg != sub_sentence_question[i]){//MultiWord case(for now)
-          console.log("debug: Regular matcher case");
         }
         else{
-          /*error case */
-          console.log("debug: Error");
+          api_res(err_msg);
         }
-      }
 
     });//end find model
 
@@ -112,8 +92,7 @@ module.exports = {
   StopSentence: function (req,res) {
 
     var answer;
-    var err_msg =
-      "Error: no value call to this api or something went wrong";
+    var err_msg = "Error: no value call to this api or something went wrong";
 
     var msg = req.param('msg');
     if(msg != "undefined") {
@@ -126,7 +105,7 @@ module.exports = {
     }//end callback function
 
     //find data from mySQL
-    log.find({}).exec(function find(err, chat_log){
+    Log.find({}).exec(function find(err, chat_log){
 
       for(var i=0;i<chat_log.length;i++){//loop by all record
 
@@ -146,10 +125,6 @@ module.exports = {
 
       }
 
-      //debug all data from DB
-      //console.log(chat_log);
-      //console.log("Debug response data from subsentence: "+answer);
-
       //return all data in JSON
       return res.json({
         chat_log: chat_log,
@@ -161,7 +136,7 @@ module.exports = {
   },//end action
 
   RegularMatcher: function(){
-    
+
   },
 
   MultiWord: function (req,res){

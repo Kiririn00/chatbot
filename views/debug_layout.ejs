@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+
+<%- body %>
+
+</body>
+<script src="/js/dependencies/sails.io.js"></script>
+<script>
+  io.socket.on('connect', function socketConnected() {
+
+    console.log("socket connected.");
+
+    io.socket.on('/Chat/Debug', function (data) {
+      console.log("Debug: " + data.greeting);
+    });
+
+    io.socket.on('disconnect', function() {
+        console.log("socket disconnected.");
+    });
+
+  });
+
+</script>
+</html>

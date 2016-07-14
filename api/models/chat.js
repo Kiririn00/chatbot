@@ -17,6 +17,9 @@ module.exports = {
     bot:{
       type: 'string',
       size: 300
+    },
+    room_id:{
+      type: 'integer'
     }
   }
 };
