@@ -26,7 +26,63 @@ module.exports = {
     return res.view();
   },
 
-  ShowSopt: function (req,res){
+  ShowSpot: function (req,res){
+
+    var spot;
+
+    if(req.method = 'GET') {
+      spot = req.param('spot');
+    }
+
+    //SQL error case
+    function error(err){
+      console.log(err);
+    }
+
+    //SQL no error case
+    function sql_result(result){
+      console.log(result);
+    }
+
+    //SQL query:+1 every time to column.column will pass in parameter
+    function sql_operation(spot_name){
+
+      rate.query('UPDATE rate SET score = score + 1 WHERE spot_name = "'+spot_name+'"', function (err, result) {
+        if (err){
+          error(err);
+        }
+        else{
+          sql_result(result);
+        }
+      });
+
+    }
+
+    //case condition if GET data match string then query for +1 that column
+    if(spot == "heizan"){
+
+      sql_operation("heizan");
+
+    }
+
+    else if(spot == "omi"){
+
+      sql_operation("omi");
+
+    }
+
+    else if(spot == "hikone"){
+
+      sql_operation("hikone");
+
+    }
+
+    res.locals.layout = 'layout2';
+
+    //send GET data to view
+    return res.view({
+      spot: spot
+    });
 
   },
 

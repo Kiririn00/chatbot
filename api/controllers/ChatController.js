@@ -17,11 +17,10 @@ module.exports = {
 
   Debug: function (req,res) {
 
-    // short form    var check = callbackDebug();
-    sails.sockets.emit('hi', 'everyone');
+    log.find({ where: { question: msg } }).exec(function find(err, found){
 
-    res.locals.layout = 'debug_layout';
-    return res.view();
+
+    });//end find model
   },
 
   //show view of chat box(for test chat or debug)
@@ -32,6 +31,7 @@ module.exports = {
 
   //this is session component, it will handle what component should use
   TalkSession: function(req,res){
+
     var err_msg = "Don't Understand";
 
     //message in textarea from view (GET)
@@ -70,7 +70,7 @@ module.exports = {
 
     //this function is for check input from user(question),
     //which are input are match with component or not match nether.
-    Log.find({ where: { question: msg } }).exec(function find(err, found){
+    log.find({ where: { question: msg } }).exec(function find(err, found){
 
         setCallback();
         //match stopsentence component case
@@ -108,7 +108,7 @@ module.exports = {
     }
 
     //find data from mySQL
-    Log.find({}).exec(function find(err, chat_log){
+    log.find({}).exec(function find(err, chat_log){
 
       for(var i=0;i<chat_log.length;i++){//loop by all record
 
@@ -138,9 +138,13 @@ module.exports = {
 
   },//end action
 
+  Feedback: function (req,res) {
+
+  },
+
   RegularMatcher: function(){
 
   },
-  
+
 };
 
