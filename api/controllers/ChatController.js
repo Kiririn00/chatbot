@@ -34,6 +34,12 @@ module.exports = {
 
     var err_msg = "Don't Understand";
 
+    //define name of component in DB
+    var stop_sentence = "stop_sentence";
+    var feedback = "feedback";
+
+    var component;
+
     //message in textarea from view (GET)
     if(req.method = 'GET') {
       var msg = req.param('msg');
@@ -44,10 +50,10 @@ module.exports = {
 
     function setCallback(){}
 
-    function callStopsentence() {
+    function callComponent(component) {
 
       var options = {
-        url: 'http://localhost:1337/Chat/StopSentence?msg='+msg,
+        url: 'http://localhost:1337/Chat/'+component+'?msg='+msg,
         method: 'GET',
         json: true
       };
@@ -70,18 +76,29 @@ module.exports = {
 
     //this function is for check input from user(question),
     //which are input are match with component or not match nether.
-    log.find({ where: { question: msg } }).exec(function find(err, found){
+    log.find({ where: { question: msg} }).exec(function find(err, found){
 
         setCallback();
+
+        //if not error will get component type from DB
+        if(found.length != 0) {
+          component = found[0].component;
+        }
+
         //match stopsentence component case
-        if(!err){
-          callStopsentence();
+        if(!err && component == stop_sentence){
+          callComponent("StopSentence");
+        }
+        else if(component == feedback){
+          callComponent("Feedback");
         }
         else{
           api_res(err_msg);
         }
 
-    });//end find model
+    });
+
+    //end find model
 
     function api_res(api_res) {
       return res.json({
@@ -103,9 +120,7 @@ module.exports = {
     }
 
     //callback function for put data from mySQL to array
-    function callbackData(found,i){
-
-    }
+    function callbackData(found,i){}
 
     //find data from mySQL
     log.find({}).exec(function find(err, chat_log){
@@ -140,11 +155,26 @@ module.exports = {
 
   Feedback: function (req,res) {
 
+    var answer;
+
+    function setCallback(){}
+
+    rate.find({ sort: 'score DESC' },function (err,result) {
+
+      setCallback();
+
+      answer = "From your feedback data we recommend "+result[0].spot_name;
+
+      return res.json({
+        answer: answer
+      })
+
+    });
   },
 
-  RegularMatcher: function(){
+  RegularMatcher: function(req,res){
 
-  },
+  }
 
 };
 
