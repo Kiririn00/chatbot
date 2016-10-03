@@ -37,9 +37,12 @@ module.exports = {
     }
 
     var socket_id = sails.sockets.getId(req.socket);
+
     var msg = req.param('msg');
 
-    sails.sockets.broadcast(socket_id ,{ msg: msg });
+    var feedback_switch = req.param('feedback_switch');
+
+    sails.sockets.broadcast(socket_id ,{ msg: msg, feedback_switch:feedback_switch});
 
   }
 

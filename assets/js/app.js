@@ -20,7 +20,7 @@ io.socket.on('connect', function() {// if web socket online
       '<p class="them"> ' +data.msg + '</p>'
     );
 
-    $.get('/Chat/TalkSession',{msg: data.msg},function (data){
+    $.get('/Chat/TalkSession',{msg: data.msg, feedback_switch: data.feedback_switch},function (data){
 
       $(".chat").append(
         //text is detail that bot response
@@ -35,6 +35,8 @@ io.socket.on('connect', function() {// if web socket online
 
   //request to broadcast to room when send messages.
   $('#chat-send-button').click(SendMessage);
+
+  $('#reset-score-button').click(ResetScore);
 
   // When the socket disconnects
   io.socket.on('disconnect', function() {

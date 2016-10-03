@@ -14,6 +14,10 @@ module.exports = {
     score:{
       type: 'integer',
       size: 100
+    },
+    tag:{
+      type: 'string',
+      size: 100
     }
   }
 };

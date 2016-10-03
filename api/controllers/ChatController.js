@@ -43,17 +43,19 @@ module.exports = {
     //message in textarea from view (GET)
     if(req.method = 'GET') {
       var msg = req.param('msg');
+      var feedback_switch = req.param('feedback_switch');
     }
 
     //debug check message from view
     console.log("Debug data from view: "+msg);
+    console.log("Debug check status: "+feedback_switch);
 
     function setCallback(){}
 
     function callComponent(component) {
 
       var options = {
-        url: 'http://localhost:1337/Chat/'+component+'?msg='+msg,
+        url: 'http://localhost:1337/Chat/'+component+'?msg='+msg+'&feedback_switch='+feedback_switch,
         method: 'GET',
         json: true
       };
@@ -155,23 +157,119 @@ module.exports = {
 
   Feedback: function (req,res) {
 
+    /*
+    requirement make new seanario
+    prepare 3 content of jinjya
+    prepare 1 content of hikone
+
+    bot will recommend jinjya 3 times
+    user will say no when jinja , score will drop down to 0
+    and decrease jinjya B 1 (-1)
+
+    and it will show biwako in 3 times
+
+    requrement 2
+
+    make feedback's check box and send 1 or 0 to server side
+     if 1 will calculate score
+      elsei if 2 will NOT calculate score
+
+     */
+
     var answer;
+    var cal_feedback_switch;
+
+    var msg = req.param('msg');
+    var feedback_switch = req.param('feedback_switch');
+
+    console.log("Debug feedback_switch from feedback component: "+feedback_switch);
 
     function setCallback(){}
+
+    //SQL no error case
+    function sql_result(result){
+      console.log(result);
+    }
+
+    function decreaseScore(spot_name, decrease){
+
+      setCallback();
+
+      rate.query('UPDATE rate SET score = score - '+decrease+' WHERE spot_name = "'+spot_name+'"', function (err, result) {
+
+        if (err){
+          error(err);
+        }
+        else{
+          sql_result(result);
+        }
+
+      });
+    }
+
+    function zeroScore(spot_name){
+
+      rate.query('UPDATE rate SET score = 0 WHERE spot_name = "'+spot_name+'"', function (err, result) {
+
+        if (err){
+          error(err);
+        }
+        else{
+          sql_result(result);
+        }
+
+      });
+    }
+
 
     rate.find({ sort: 'score DESC' },function (err,result) {
 
       setCallback();
 
-      answer = "From your feedback data we recommend "+result[0].spot_name;
+      //not calculate score case
+      if(feedback_switch == 0) {
+        cal_feedback_switch = 0;
+      }
+      else if(feedback_switch == 1){
+        cal_feedback_switch = 1;
+      }
 
-      return res.json({
-        answer: answer
-      })
+      if (msg == "No") {
+
+        if(feedback_switch == 1){
+          zeroScore(result[0].spot_name);
+          decreaseScore(result[1].spot_name,2);
+        }
+        else if(feedback_switch == 0) {
+          decreaseScore(result[0].spot_name,5);
+        }
+
+      }
+      else {
+
+        console.log("Debug return from feedback component: " + result[0].spot_name);
+
+        answer = "From your feedback data we recommend " + result[0].spot_name;
+
+      }
+
+      rate.find({ sort: 'score DESC' },function (err,result) {
+
+        setCallback();
+
+        answer = "we recommend "+result[0].spot_name;
+
+        return res.json({
+          answer: answer
+        })
+
+      });
 
     });
   },
-
+  NoFeedback: function () {
+   //if feedback button not checked. will no calculate
+  },
   RegularMatcher: function(req,res){
 
   }

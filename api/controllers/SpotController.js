@@ -26,6 +26,51 @@ module.exports = {
     return res.view();
   },
 
+  ResetScore: function (req,res) {
+
+
+    function setCallback(){}
+
+    function scoreUpdate(rows){
+
+      var score = 10;
+
+      for(var i=1;i<=rows;i++) {
+
+        rate.update({id: i}, {score: score}).exec(function afterwards(err, update) {
+
+          setCallback();
+
+          if (err) {
+            console.log("update error");
+          }
+
+        });
+
+        score--;
+
+      }
+
+    }
+
+    rate.count(function (err, rows){
+
+      setCallback();
+
+      if (err) {
+          return console.log(err);
+      }
+      console.log("Debug count rate's table: "+rows);
+
+      scoreUpdate(rows);
+  });
+
+
+    return res.json({
+      status: "scores were reset"
+    });
+  },
+
   ShowSpot: function (req,res){
 
     var spot;
@@ -33,6 +78,8 @@ module.exports = {
     if(req.method = 'GET') {
       spot = req.param('spot');
     }
+
+    function setCallback () {}
 
     //SQL error case
     function error(err){
@@ -47,6 +94,8 @@ module.exports = {
     //SQL query:+1 every time to column.column will pass in parameter
     function sql_operation(spot_name){
 
+      setCallback();
+
       rate.query('UPDATE rate SET score = score + 1 WHERE spot_name = "'+spot_name+'"', function (err, result) {
         if (err){
           error(err);
@@ -58,16 +107,45 @@ module.exports = {
 
     }
 
-    //case condition if GET data match string then query for +1 that column
-    if(spot == "heizan"){
 
-      sql_operation("heizan");
+    function addScore(rows){
+
+      rate.find({}).exec(function find (err,spot_db){
+
+        setCallback();
+
+        for(var i=0;i<rows;i++) {
+
+          if(spot == spot_db[i].spot_name ){
+             sql_operation(spot);
+          }
+        }
+
+      });
 
     }
 
-    else if(spot == "omi"){
+    rate.count(function (err, rows) {
+      setCallback();
 
-      sql_operation("omi");
+      if(err){
+        return console.log(err);
+      }
+
+      addScore(rows);
+    });
+
+    /*
+    //case condition if GET data match string then query for +1 that column
+    if(spot == "hieizan"){
+
+      sql_operation("hieizan");
+
+    }
+
+    else if(spot == "omi shrine"){
+
+      sql_operation("omi shrine");
 
     }
 
@@ -76,6 +154,7 @@ module.exports = {
       sql_operation("hikone");
 
     }
+    */
 
     res.locals.layout = 'layout2';
 
