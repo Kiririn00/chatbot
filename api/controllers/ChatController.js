@@ -52,6 +52,8 @@ module.exports = {
 
     function setCallback(){}
 
+    //this function will use for call component's API
+    //name of component will use as parameter
     function callComponent(component) {
 
       var options = {
@@ -86,11 +88,11 @@ module.exports = {
         if(found.length != 0) {
           component = found[0].component;
         }
-
         //match stopsentence component case
         if(!err && component == stop_sentence){
           callComponent("StopSentence");
         }
+        //match feedback component case
         else if(component == feedback){
           callComponent("Feedback");
         }
@@ -157,30 +159,11 @@ module.exports = {
 
   Feedback: function (req,res) {
 
-    /*
-    requirement make new seanario
-    prepare 3 content of jinjya
-    prepare 1 content of hikone
-
-    bot will recommend jinjya 3 times
-    user will say no when jinja , score will drop down to 0
-    and decrease jinjya B 1 (-1)
-
-    and it will show biwako in 3 times
-
-    requrement 2
-
-    make feedback's check box and send 1 or 0 to server side
-     if 1 will calculate score
-      elsei if 2 will NOT calculate score
-
-     */
-
     var answer;
     var cal_feedback_switch;
 
     var msg = req.param('msg');
-    var feedback_switch = req.param('feedback_switch');
+    var feedback_switch = req.param('feedback_switch');//0 or 1
 
     console.log("Debug feedback_switch from feedback component: "+feedback_switch);
 
@@ -191,6 +174,8 @@ module.exports = {
       console.log(result);
     }
 
+    //this is function for decrease score of DB
+    //parameter spot:name of spot, decrease: number for - score
     function decreaseScore(spot_name, decrease){
 
       setCallback();
@@ -221,7 +206,9 @@ module.exports = {
       });
     }
 
+    //main operation
 
+    //sort score in DB
     rate.find({ sort: 'score DESC' },function (err,result) {
 
       setCallback();
