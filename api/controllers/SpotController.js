@@ -26,8 +26,14 @@ module.exports = {
     return res.view();
   },
 
-  ResetScore: function (req,res) {
+  CountClick: function(req,res){
 
+
+
+    return res.json();
+  },
+
+  ResetScore: function (req,res) {
 
     function setCallback(){}
 
@@ -135,26 +141,6 @@ module.exports = {
       addScore(rows);
     });
 
-    /*
-    //case condition if GET data match string then query for +1 that column
-    if(spot == "hieizan"){
-
-      sql_operation("hieizan");
-
-    }
-
-    else if(spot == "omi shrine"){
-
-      sql_operation("omi shrine");
-
-    }
-
-    else if(spot == "hikone"){
-
-      sql_operation("hikone");
-
-    }
-    */
 
     res.locals.layout = 'layout2';
 

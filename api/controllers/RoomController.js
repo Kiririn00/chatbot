@@ -19,7 +19,8 @@ module.exports = {
         return res.serverError(err);
       }
 
-      console.log(req.socket.rooms);
+      //console.log(req.socket.rooms);
+      sails.log("Open socket!, create room: "+JSON.stringify(req.socket.rooms));
 
       return res.json({
         message: 'Subscribed to a fun room called '+socket_id+'!'

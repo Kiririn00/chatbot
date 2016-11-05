@@ -16,11 +16,8 @@ module.exports = {
 
   },
   //this action is for make login process
-  Process: function (req,res){
+  LoginProcess: function (req,res){
 
-      //create value, prepare for input data from mySQL
-      var username_DB;
-      var password_DB;
       //get post data from view
       var username_view = req.param('username');
       var password_view = req.param('password');
@@ -36,6 +33,30 @@ module.exports = {
       function redirect(){
 
       }
+
+    function createSession(component) {
+
+      var options = {
+        url: 'http://localhost:1337/Chat/'+ component+'?msg='+msg+'&feedback_switch='+feedback_switch,
+        method: 'GET',
+        json: true
+      };
+
+      //Call Subsentence API
+      request(options, function (err, response, body) {
+
+        if (!err && response.statusCode == 200) {
+          setCallback();
+          api_res(body.answer);
+
+        }
+        else {
+          console.log("HTTP Error" + response.statusCode);
+        }
+
+      });
+
+    }
 
       //login check
       User.find({}).exec(function find(err, found){
@@ -60,7 +81,6 @@ module.exports = {
         //redirect();
         return res.redirect('User/Login');
       });//end exec
-
 
   },
 
