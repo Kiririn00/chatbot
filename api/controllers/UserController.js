@@ -34,30 +34,6 @@ module.exports = {
 
       }
 
-    function createSession(component) {
-
-      var options = {
-        url: 'http://localhost:1337/Chat/'+ component+'?msg='+msg+'&feedback_switch='+feedback_switch,
-        method: 'GET',
-        json: true
-      };
-
-      //Call Subsentence API
-      request(options, function (err, response, body) {
-
-        if (!err && response.statusCode == 200) {
-          setCallback();
-          api_res(body.answer);
-
-        }
-        else {
-          console.log("HTTP Error" + response.statusCode);
-        }
-
-      });
-
-    }
-
       //login check
       User.find({}).exec(function find(err, found){
 
@@ -79,7 +55,8 @@ module.exports = {
         }//end for loop
 
         //redirect();
-        return res.redirect('User/Login');
+        //return res.redirect('User/Login');
+        return res.view();
       });//end exec
 
   },

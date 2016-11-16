@@ -7,6 +7,7 @@ module.exports = {
   SpotPreference: function (req, res) {
 
     var similarity = require( 'compute-cosine-similarity' );
+    var auto_http = require('auto_http');
 
     var err_msg = "Still not get a POST's data";
     var user_preference = [];
@@ -19,11 +20,15 @@ module.exports = {
 
     function degreeConvert(temple_cosine,natural_cosine,history_cosine){
 
-      console.log(temple_cosine,natural_cosine,history_cosine);
+      //debug cosine variable
+      //console.log(temple_cosine,natural_cosine,history_cosine);
 
       var temple_degree = Math.acos(temple_cosine) * (180/Math.PI);
       var natural_degree = Math.acos(natural_cosine) * (180/Math.PI);
       var history_degree = Math.acos(history_cosine) * (180/Math.PI);
+
+      //debug convert cosine to degree
+      //console.log(temple_degree,natural_degree,history_degree);
 
     }
 
@@ -69,7 +74,9 @@ module.exports = {
 
       sails.log("post data:"+ preference1,preference2,preference3,feedback);
 
-      user_preference = [preference1,preference2,preference3]
+      auto_http.start(req);
+
+      user_preference = [preference1,preference2,preference3];
 
       var cosine = cosineCalculate(user_preference);
     }

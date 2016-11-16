@@ -28,8 +28,6 @@ module.exports = {
 
   CountClick: function(req,res){
 
-
-
     return res.json();
   },
 
