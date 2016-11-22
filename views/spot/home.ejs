@@ -14,9 +14,9 @@
   <!-- Search Form -->
   <div class="container">
     <div class="form-group">
-      <h2>Search Spot</h2>
+      <h2>Search Spot (presently can't use)</h2>
       <!--form -->
-      <form id="search" action="/Spot/SearchResult" id="data" method="post">
+      <form id="search" action="/Spot/SearchResult" method="post">
         <label for="type">Type</label>
         <select name="type">
           <option name="exploration" value="0">Exploration</option>
@@ -44,6 +44,39 @@
   <h4>Number of result</h4>
     <div id="count">count</div><!-- number of search result -->
 
+  <br>
+
+  <!-- user feedback's preference experiment -->
+  <h2>Experiment</h2><br>
+
+  <form id="experiment" action="/Experiment/Preference" method="post">
+
+    <label for="preference">User's preference</label><br>
+
+    <% for (var i = 0; i < 10; i++) { %>
+
+      <input type="number" id="preference<%= i %>" />
+
+    <% } %>
+
+    <input type="hidden" id="preference_number" value="<%= i %>">
+    <br>
+
+    <label for="feedback">Feedback</label>
+    <select id="feedback">
+      <option name="positive" value="0">TURE</option>
+      <option name="negative" value="1">FALSE</option>
+    </select><br>
+
+    <input type="submit">
+    <input type="reset">
+    <input type="button" id="auto_fill" value="Auto Fill">
+
+
+
+  </form>
+
+  <!----------------------------------- -->
 </div>
 
 <!-- main topic -->
@@ -213,9 +246,10 @@
 <div class="scroll-top"><a href="#top" class="scroll tooltip-left" data-hint="Scroll to Top"><i class="fa fa-angle-up fa-2x"></i></a></div>
 
 <footer>
+  <script src="/js/form.js"></script>
+  <script src="/js/auto_fill.js"></script>
 </footer>
 
-<script src="/js/search.js"></script>
 <!-- Scripts Início -->
 <script type="text/javascript">
   //button animate script
@@ -225,7 +259,6 @@
       $('html,body').animate({scrollTop:$(this.hash).offset().top}, 500);
     });
   });
-
 </script>
 <div class='follow-me'>
   <div id="live-chat">

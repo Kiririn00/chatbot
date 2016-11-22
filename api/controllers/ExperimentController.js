@@ -1,89 +1,125 @@
 /**
  * Created by Varit on 10/21/16.
+ * This is Controller.
+ * This controller is use for make a experiment program.
  */
 
 module.exports = {
 
-  SpotPreference: function (req, res) {
+  /*
+  * Preference is use for calculate a cosine data
+  *
+  * INPUT: user's preference(from browser), spot_preference(from database)
+  * OUTPUT: cosine degree
+  * */
+  Preference: function (req, res) {
 
+    //similarity package is use for calculate cosine
     var similarity = require( 'compute-cosine-similarity' );
+    //auto_http package will show HTTP method information on console
     var auto_http = require('auto_http');
 
     var err_msg = "Still not get a POST's data";
-    var user_preference = [];
 
-    function apiRes(api_res) {
+    /*
+    * function apiRes is use for error case.
+    * The error case mean, server-side can not response the POST data(HTTP Error 400+)
+    *
+    * parameter: string -> api_res is error message. You can change by edit err_msg.
+    * return: JSON -> It will return response with JSON error data of err_msg(key name is "answer").
+    * */
+    function apiRes(api_res) {//tell error
       return res.json({answer:api_res});
     }
 
-    function callBack() {}
+    /*
+    * function degreeConvert is use for convert similarity cosine to degree
+    *
+    * parameter: array -> cosine is float data of cosine .
+    * return: array -> float data of degree.
+    * */
+    function degreeConvert(cosine){
 
-    function degreeConvert(temple_cosine,natural_cosine,history_cosine){
+      var cosine_degree = [];
 
-      //debug cosine variable
-      //console.log(temple_cosine,natural_cosine,history_cosine);
+      for(var i=0;i<cosine.length;i++){
 
-      var temple_degree = Math.acos(temple_cosine) * (180/Math.PI);
-      var natural_degree = Math.acos(natural_cosine) * (180/Math.PI);
-      var history_degree = Math.acos(history_cosine) * (180/Math.PI);
+        cosine_degree[i] = Math.acos(cosine[i]) * (180/Math.PI);//this will convert cosine to degree
 
-      //debug convert cosine to degree
-      //console.log(temple_degree,natural_degree,history_degree);
+      }
+
+      return cosine_degree;
 
     }
 
-    //calculate cosine
-    function cosineCalculate(user_preference){
+    /*
+    * function cosineCalculate will calculate by use compute-cosine-similarity
+    * package. It will calculate between user's preference and spot_preference.
+    *
+    * call function: degreeConvert
+    * parameter:
+    *    array -> user_preference
+    *    object array -> found
+    * return: array -> cosine degree
+    * */
+    function cosineCalculate(user_preference,found){
 
-      //define preference variable of DB
-      var temple_preference  = [],
-          natural_preference = [],
-          history_preference = [];
-      var temple_cosine,natural_cosine,history_cosine;
+      var cosine = [];
+      var spot_preference = [];
+      var cosine_degree;
+      var spot_number = found.length;
 
-      preference.find({},function (err,found) {
+      for(var i=0;i<spot_number;i++) {
 
-        callBack();
+        spot_preference[i] = Object.keys(found[0]).map(function (key) {
+          //console.log("Debug cosine: "+found[i][key]);
+          return found[i][key];
+        });
 
-        for(var i=0;i<found.length;i++){
+        cosine[i] = similarity(user_preference, spot_preference[i]);
 
-          temple_preference[i] = found[i].temple;
-          natural_preference[i] = found[i].natural;
-          history_preference[i] = found[i].history;
+      }//end loop
+
+      cosine_degree = degreeConvert(cosine);
+
+      return cosine_degree
+
+    }
+
+    //メイン処理
+    if(req.method == 'POST'){
+
+      auto_http.start(req);//debug as HTTP details
+
+      var preference_number = req.param('preference_number');//user's preference number
+      var feedback = req.param('feedback');
+      var user_preference = JSON.parse(req.param('user_preference'));
+
+      // query all spot_preference
+      var query = "SELECT `temple`, `natural`, `history`, `lake`, `castle`, `museum`, `market`, `mountain`, `train`, `seichi` FROM `preference_mock` WHERE 1 LIMIT 100";
+
+      //execute mySQL
+      preference_mock.query(query, function (err, found) {//found is spot_preference's data
+
+        if (err) { //if query is error
+          return res.serverError(err);
         }
 
-        console.log(user_preference,temple_preference,natural_preference,history_preference);
+        //debug input of the user's preference
+        sails.log("INPUT user preference: ", user_preference);
 
-        //all cosine calculate
-        temple_cosine = similarity(user_preference, temple_preference);
-        natural_cosine = similarity(user_preference, natural_preference);
-        history_cosine = similarity(user_preference, history_preference);
+        //calculate cosine degree
+        cosine_degree = cosineCalculate(user_preference,found);
 
-        //convert cosine to degree
-        degreeConvert(temple_cosine,natural_cosine,history_cosine);
+        //debug output of of cosine degree
+        sails.log("OUTPUT cosine degree: ", cosine_degree);
 
-      });
+      });//end find DB
 
-    }
-
-    if(req.method == 'POST'){
-      var preference1 = req.param('preference1');
-      var preference2 = req.param('preference2');
-      var preference3 = req.param('preference3');
-      var feedback = req.param('feedback');
-
-      sails.log("post data:"+ preference1,preference2,preference3,feedback);
-
-      auto_http.start(req);
-
-      user_preference = [preference1,preference2,preference3];
-
-      var cosine = cosineCalculate(user_preference);
     }
     else{
       apiRes(err_msg);
     }
-
 
     return res.json();
   }

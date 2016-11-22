@@ -1,7 +1,15 @@
 /**
  * Created by ASAWAVETVUTT VARIT on 2016/05/09.
  */
-//this is script
+
+/*------------ ignore reload script---------*/
+
+$('form#ignore_reload').submit(function (event) {
+  event.preventDefault();
+});
+
+/*------------- ignore reload script -------:/
+
 /*-------------search system--------------------------------------------------*/
 //active whem click submit in search form
 $("form#search").submit(function(event){
@@ -9,11 +17,11 @@ $("form#search").submit(function(event){
 
   event.preventDefault();//make submit event ignore normal form submit
 
-  var $form = $( this),//this is 'form#search'
-    type = $form.find( "select[name='type']" ).val(),//get value
-    category = $form.find( "select[name='category']" ).val(),
-    good_for = $form.find( "select[name='good_for']" ).val(),
-    url = $form.attr( "action" );//get action value from form
+  var $search_form = $( this),//this is 'form#search'
+    type = $search_form.find( "select[name='type']" ).val(),//get value
+    category = $search_form.find( "select[name='category']" ).val(),
+    good_for = $search_form.find( "select[name='good_for']" ).val(),
+    url = $search_form.attr( "action" );//get action value from form
 
   //debug name and action
   console.log("Debug: form action to: "+url);
@@ -47,3 +55,39 @@ $("form#search").submit(function(event){
 
 });//end form submit event
 /*-------------search system-----------------------------------------------------------*/
+
+/*-------- spot preference form's script ----------*/
+$('form#experiment').submit(function (event) {
+
+  var user_preference = [], user_preference_json;
+  //ignore normal form submit
+  event.preventDefault();
+
+  //get all value from of form
+  var $experiment_form = $(this),
+    preference_number = $experiment_form.find('input#preference_number').val(),
+    feedback = $experiment_form.find('select[id="feedback"]').val(),
+    url = $experiment_form.attr('action');
+
+  for(var i=0;i<preference_number;i++){
+    user_preference[i] = $experiment_form.find('input#preference'+i).val();
+  }
+
+  //debug: check send form value
+  console.log(user_preference);
+  console.log("Debug feedback: "+JSON.stringify(feedback));
+  console.log("Debug action to: "+url);
+
+  $.post(url,
+    {'user_preference[]':JSON.stringify(user_preference),feedback:feedback,
+      preference_number:preference_number},
+    function (data){
+
+    }
+
+  );
+
+});
+/* ------------ spot preference form's script  -----------*/
+
+
