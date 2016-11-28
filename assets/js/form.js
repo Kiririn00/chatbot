@@ -81,7 +81,9 @@ $('form#experiment').submit(function (event) {
   $.post(url,
     {'user_preference[]':JSON.stringify(user_preference),feedback:feedback,
       preference_number:preference_number},
-    function (data){
+    function (preference){
+
+      console.log(preference);
 
     }
 

@@ -19,6 +19,8 @@ module.exports = {
     //auto_http package will show HTTP method information on console
     var auto_http = require('auto_http');
 
+    var sortBy = require('sort-array');
+
     var err_msg = "Still not get a POST's data";
 
     /*
@@ -52,6 +54,24 @@ module.exports = {
 
     }
 
+    function combinePreference(spot_name,cosine_degree){
+
+      var combine_preference = [];
+      var preference_length = cosine_degree.length;
+
+      for(var i=0; i< preference_length;i++){
+
+        combine_preference.push({
+          spot_name: spot_name[i][0],
+          cosine_degree: cosine_degree[i]
+        });
+
+      }
+
+      return combine_preference;
+
+    }
+
     /*
     * function cosineCalculate will calculate by use compute-cosine-similarity
     * package. It will calculate between user's preference and spot_preference.
@@ -62,12 +82,14 @@ module.exports = {
     *    object array -> found
     * return: array -> cosine degree
     * */
-    function cosineCalculate(user_preference,found){
+    function cosineCalculate(user_preference,found,spot_name_raw){
 
       var cosine = [];
       var spot_preference = [];
       var cosine_degree;
+      var spot_name = [];
       var spot_number = found.length;
+      var combine_preference;
 
       for(var i=0;i<spot_number;i++) {
 
@@ -76,15 +98,25 @@ module.exports = {
           return found[i][key];
         });
 
+        spot_name[i] = Object.keys(spot_name_raw[0]).map(function (key) {
+          //console.log("Debug spot_name: ",spot_name_raw[i][key]);
+          return spot_name_raw[i][key]; //why return be 2D array
+        });
+
+        //user preference have only one preference, beside spot_preference has many record
         cosine[i] = similarity(user_preference, spot_preference[i]);
 
       }//end loop
 
       cosine_degree = degreeConvert(cosine);
 
-      return cosine_degree
+      combine_preference = combinePreference(spot_name,cosine_degree);
 
-    }
+      return combine_preference
+
+    }//end of function
+
+
 
     //メイン処理
     if(req.method == 'POST'){
@@ -95,8 +127,14 @@ module.exports = {
       var feedback = req.param('feedback');
       var user_preference = JSON.parse(req.param('user_preference'));
 
+      var spot_name;
+      var preference;
+      var query_limit = 100;
+
       // query all spot_preference
-      var query = "SELECT `temple`, `natural`, `history`, `lake`, `castle`, `museum`, `market`, `mountain`, `train`, `seichi` FROM `preference_mock` WHERE 1 LIMIT 100";
+      var query = "SELECT `temple`, `natural`, `history`, `lake`, `castle`, `museum`, `market`, `mountain`, `train`, `seichi` FROM `preference_mock` WHERE 1 LIMIT "+query_limit;
+
+      var spot_query = "SELECT `spot_name` FROM `preference_mock` WHERE 1 LIMIT "+query_limit;
 
       //execute mySQL
       preference_mock.query(query, function (err, found) {//found is spot_preference's data
@@ -105,14 +143,43 @@ module.exports = {
           return res.serverError(err);
         }
 
-        //debug input of the user's preference
+        //debug input of the user's preference›
         sails.log("INPUT user preference: ", user_preference);
 
-        //calculate cosine degree
-        cosine_degree = cosineCalculate(user_preference,found);
+        preference_mock.query(spot_query, function (err, spot_name) {
 
-        //debug output of of cosine degree
-        sails.log("OUTPUT cosine degree: ", cosine_degree);
+          if (err) { //if query is error
+            return res.serverError(err);
+          }
+
+          //calculate cosine degree
+          preference = cosineCalculate(user_preference,found,spot_name);
+
+          //sort cosine degree
+
+          preference.sort(function (a,b) {
+
+            if (a.cosine_degree < b.cosine_degree ) {
+              return -1;
+            }
+            if (a.cosine_degree > b.cosine_degree) {
+              return 1;
+            }
+            else{
+              return 0;
+            }
+            // a must be eq
+
+          });
+
+          //debug output of of cosine degree
+          sails.log("OUTPUT cosine degree: ", preference);
+
+          return res.json({
+            preference: preference
+          });
+
+        });//end find spot's DB
 
       });//end find DB
 
@@ -121,7 +188,6 @@ module.exports = {
       apiRes(err_msg);
     }
 
-    return res.json();
   }
 
 };
