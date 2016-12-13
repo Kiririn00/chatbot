@@ -2,7 +2,23 @@
  * Created by Varit on 11/16/16.
  */
 
+/*-------------- auto fill preference's name-------------*/
 
+$.get('/Experiment/PreferenceName', function (data) {
+
+  var preference_name_num = data.preference_name.length;
+
+  for(var i=0;i<preference_name_num;i++) {
+
+    console.log(data.preference_name[i]);
+
+    document.getElementById('preference_name'+i).innerHTML = data.preference_name[i];
+
+  }
+
+});
+
+/*------------- end auto fill preference's name---------*/
 
 /*-------------- auto fill input number------------------*/
 $('input#auto_fill').click(function (event) {

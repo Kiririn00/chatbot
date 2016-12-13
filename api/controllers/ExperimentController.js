@@ -192,7 +192,21 @@ module.exports = {
 
   PreferenceName: function (req,res) {
 
+    /*
+    logic
+     1.) make preference name of array. {["temple"],[lake],...}
+     1.1)array will come from DB data
+     2.) index of array must to be same to the number of preference.
+     3.) label on input form
+     4.) in label's put array in it.
+    */
+
     var preference_name_query = "DESCRIBE preference_mock";
+
+    var preference_num = 12;
+    var start_column = 2;
+    var preference_name = [];
+    var preference_name_index = 0;
 
     preference_mock.query(preference_name_query, function (err,found) {
 
@@ -200,9 +214,20 @@ module.exports = {
         return res.serverError;
       }
 
-      console.log(found);
+      for(var i=start_column;i<preference_num;i++) {
 
-    });
+        preference_name[preference_name_index] = found[i].Field;
+
+        preference_name_index++;
+
+      }
+
+      return res.json({
+        preference_name:preference_name
+      });
+
+    });//end query
+
 
   }//end action
 

@@ -54,17 +54,10 @@
     <label for="user_preference"><h3>User's preference</h3></label><br>
 
     <!-- open input form loop -->
-    <!-- logic
-     1.) make preference name of array. {["temple"],[lake],...}
-     1.1)array will come from DB data
-     2.) index of array must to be same to the number of preference.
-     3.) label on input form
-     4.) in label's put array in it.
-     -->
     <% for (var i = 0; i < 10; i++) { %>
 
       <br>
-      <label id="preference_name">Test Preference</label>
+      <label id="preference_name<%= i %>">Test Preference</label>
       <input type="number" id="preference<%= i %>" />
 
     <% } %>
