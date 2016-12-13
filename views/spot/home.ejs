@@ -51,20 +51,32 @@
 
   <form id="experiment" action="/Experiment/Preference" method="post">
 
-    <label for="preference">User's preference</label><br>
+    <label for="user_preference"><h3>User's preference</h3></label><br>
 
+    <!-- open input form loop -->
+    <!-- logic
+     1.) make preference name of array. {["temple"],[lake],...}
+     1.1)array will come from DB data
+     2.) index of array must to be same to the number of preference.
+     3.) label on input form
+     4.) in label's put array in it.
+     -->
     <% for (var i = 0; i < 10; i++) { %>
 
+      <br>
+      <label id="preference_name">Test Preference</label>
       <input type="number" id="preference<%= i %>" />
 
     <% } %>
+
+    <!-- close input form loop -->
 
     <input type="hidden" id="preference_number" value="<%= i %>">
     <br>
 
     <label for="feedback">Feedback</label>
     <select id="feedback">
-      <option name="positive" value="0">TURE</option>
+      <option name="positive" value="0">TRUE</option>
       <option name="negative" value="1">FALSE</option>
     </select><br>
 
@@ -74,10 +86,10 @@
 
   </form>
 
+<!--  Show experiment result area -->
 
   <div id="demo">
-    <h1>Material Design Responsive Table</h1>
-    <h2>Table of my other Material Design works (list was updated 08.2015)</h2>
+    <h1>Experiment result </h1>
 
     <!-- Responsive table starts here -->
     <!-- For correct display on small screens you must add 'data-title' to each 'td' in your table -->
@@ -87,101 +99,24 @@
         <thead>
         <tr>
           <th>ID</th>
-          <th>Name</th>
-          <th>Link</th>
-          <th>Status</th>
+          <th>Spot's name</th>
+          <th>Similar cosine</th>
+          <th>The original of spot binary's matrix</th>
         </tr>
         </thead>
         <tbody>
         <tr>
-          <td data-title="ID">1</td>
-          <td data-title="Name">Material Design Color Palette</td>
-          <td data-title="Link">
-            <a href="https://github.com/zavoloklom/material-design-color-palette" target="_blank">GitHub</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">2</td>
-          <td data-title="Name">Material Design Iconic Font</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/uqCsB" target="_blank">Codepen</a>
-            <a href="https://github.com/zavoloklom/material-design-iconic-font" target="_blank">GitHub</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">3</td>
-          <td data-title="Name">Material Design Hierarchical Display</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/eNaEBM" target="_blank">Codepen</a>
-            <a href="https://github.com/zavoloklom/material-design-hierarchical-display" target="_blank">GitHub</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">4</td>
-          <td data-title="Name">Material Design Sidebar</td>
-          <td data-title="Link"><a href="http://codepen.io/zavoloklom/pen/dIgco" target="_blank">Codepen</a></td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">5</td>
-          <td data-title="Name">Material Design Tiles</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/wtApI" target="_blank">Codepen</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">6</td>
-          <td data-title="Name">Material Design Typography</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/IkaFL" target="_blank">Codepen</a>
-            <a href="https://github.com/zavoloklom/material-design-typography" target="_blank">GitHub</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">7</td>
-          <td data-title="Name">Material Design Buttons</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/Gubja" target="_blank">Codepen</a>
-          </td>
-          <td data-title="Status">In progress</td>
-        </tr>
-        <tr>
-          <td data-title="ID">8</td>
-          <td data-title="Name">Material Design Form Elements</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/yaozl" target="_blank">Codepen</a>
-          </td>
-          <td data-title="Status">In progress</td>
-        </tr>
-        <tr>
-          <td data-title="ID">9</td>
-          <td data-title="Name">Material Design Email Template</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/qEVqzx" target="_blank">Codepen</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
-        <tr>
-          <td data-title="ID">10</td>
-          <td data-title="Name">Material Design Animation Timing (old one)</td>
-          <td data-title="Link">
-            <a href="http://codepen.io/zavoloklom/pen/Jbrho" target="_blank">Codepen</a>
-          </td>
-          <td data-title="Status">Completed</td>
-        </tr>
+          <td data-title="ID" id="id">1</td>
+          <td data-title="Name" id="spot_name">Spot's names</td>
+          <td data-title="Link" id="cosine_degree">Cosine Degrees</td>
+          <td data-title="Status" id="binary_matrix">Matrix Binary</td>
+        </tr>　
         </tbody>
       </table>
     </div>
 
-
-
-  <!----------------------------------- end experiment form -->
 </div>
+  <!-- End experiment show experiment area -->
 
 <!-- main topic -->
 <div class="galery">

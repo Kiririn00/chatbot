@@ -129,7 +129,7 @@ module.exports = {
 
       var spot_name;
       var preference;
-      var query_limit = 100;
+      var query_limit = 10;
 
       // query all spot_preference
       var query = "SELECT `temple`, `natural`, `history`, `lake`, `castle`, `museum`, `market`, `mountain`, `train`, `seichi` FROM `preference_mock` WHERE 1 LIMIT "+query_limit;
@@ -144,7 +144,7 @@ module.exports = {
         }
 
         //debug input of the user's preference›
-        sails.log("INPUT user preference: ", user_preference);
+        //sails.log("INPUT user preference: ", user_preference);
 
         preference_mock.query(spot_query, function (err, spot_name) {
 
@@ -176,7 +176,7 @@ module.exports = {
           sails.log("OUTPUT cosine degree: ", preference);
 
           return res.json({
-            preference: preference
+            response: preference
           });
 
         });//end find spot's DB
@@ -188,6 +188,22 @@ module.exports = {
       apiRes(err_msg);
     }
 
-  }
+  },//end action
+
+  PreferenceName: function (req,res) {
+
+    var preference_name_query = "DESCRIBE preference_mock";
+
+    preference_mock.query(preference_name_query, function (err,found) {
+
+      if(err){
+        return res.serverError;
+      }
+
+      console.log(found);
+
+    });
+
+  }//end action
 
 };

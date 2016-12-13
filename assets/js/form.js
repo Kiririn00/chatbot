@@ -59,7 +59,7 @@ $("form#search").submit(function(event){
 /*-------- spot preference form's script ----------*/
 $('form#experiment').submit(function (event) {
 
-  var user_preference = [], user_preference_json;
+  var user_preference = [];
   //ignore normal form submit
   event.preventDefault();
 
@@ -83,7 +83,11 @@ $('form#experiment').submit(function (event) {
       preference_number:preference_number},
     function (preference){
 
-      console.log(preference);
+      var spot_name = preference.response[0].spot_name;
+      var cosine_degree = preference.response[0].cosine_degree;
+
+      $('td#spot_name').text(spot_name);
+      $('td#cosine_degree').text(cosine_degree);
 
     }
 
