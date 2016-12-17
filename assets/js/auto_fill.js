@@ -20,6 +20,18 @@ $.get('/Experiment/PreferenceName', function (data) {
 
 /*------------- end auto fill preference's name---------*/
 
+function testMath() {
+
+  var min = Math.ceil(1),
+      max = Math.floor(10)+1,
+      result;
+
+  result = Math.floor(Math.random() * (max-min)+min);
+
+  console.log("algorithm result: ", result);
+
+}
+
 /*--------------random number by 1 loop----------------*/
 
 function randomNumbers(array) {
@@ -90,6 +102,8 @@ $('input#auto_fill').click(function (event) {
   fillForm(random_num);
 
   randomNumbers(random_num);
+
+  testMath();
 
 });
 
