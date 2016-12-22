@@ -20,21 +20,30 @@ $.get('/Experiment/PreferenceName', function (data) {
 
 /*------------- end auto fill preference's name---------*/
 
-function testMath() {
+/*-------------make array's range of number--------------*/
 
-  var min = Math.ceil(1),
-      max = Math.floor(10)+1,
-      result;
+function arrayRange(min,max) {
 
-  result = Math.floor(Math.random() * (max-min)+min);
+  var range = [];
 
-  console.log("algorithm result: ", result);
+  for(var i=0; i<max; i++){
+
+    range[i] = min;
+    min++;
+  }
+
+  //console.log("range of array: ",range);
+  return range;
 
 }
 
+/*----------end make array's rage of number-----------*/
+
 /*--------------random number by 1 loop----------------*/
 
-function randomNumbers(array) {
+function randomNumbers(min,max) {
+
+  var array = arrayRange(min,max);
 
   var current_index = array.length,
       temporary_value,
@@ -101,9 +110,7 @@ $('input#auto_fill').click(function (event) {
 
   fillForm(random_num);
 
-  randomNumbers(random_num);
-
-  testMath();
+  randomNumbers(1,10);
 
 });
 
