@@ -11,21 +11,17 @@ module.exports = {
       primaryKey: true,
       unique: true
     },
-    spot_name:{
+    preference_name:{
       type: 'string',
       size: 100
     },
-    temple: {
+    preference_score: {
       type: 'integer',
-      size: 10
+      size: 100
     },
-    natural:{
+    preference_value:{
       type: 'integer',
-      size: 10
-    },
-    history:{
-      type: 'integer',
-      size: 10
+      size: 100
     }
   }
 };

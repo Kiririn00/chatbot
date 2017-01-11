@@ -94,6 +94,25 @@ $('form#experiment').submit(function (event) {
   );
 
 });
-/* ------------ spot preference form's script  -----------*/
+/* ------------ END spot preference form's script  -----------*/
+
+/*-------------- add new preference form's script--------------------*/
+
+$('form#add_preference').submit(function (event) {
+
+  event.preventDefault();
+
+  var add_preference = $('input#add_preference').val();
+  var url = $('form#add_preference').attr('action');
+
+  $.post(url,{add_preference: add_preference},function (data) {
+
+    //may be no response data. I don't sure.
+
+  });
+
+});
+
+/*-------------- END add new preference form's script--------------------*/
 
 

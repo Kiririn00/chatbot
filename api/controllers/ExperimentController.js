@@ -195,7 +195,7 @@ module.exports = {
     /*
     logic
      1.) make preference name of array. {["temple"],[lake],...}
-     1.1)array will come from DB data
+     1.1) array will come from DB data
      2.) index of array must to be same to the number of preference.
      3.) label on input form
      4.) in label's put array in it.
@@ -231,23 +231,86 @@ module.exports = {
 
   },//end action
 
-  Test: function (req,res) {
+  /*
+  * feature: add or update preference to DB
+  * logic
+  *   1.) get input preference name[a] from view.
+  *   2.) make condition for check [a] is new one or already has in DB.
+  *   3.) if [a] had in DB, update DB by +1 score. and if preference_value
+  *   still 0 change to 1.
+  *   4.) else if [a] does not save in DB. Make a new record.
+  * return:JSON
+  *   1.) return top 10 preference score.
+  *   2.) top 10 preference data
+  * */
+  AddPreference: function (req,res) {
 
-    var shuffle = require('shuffle_range_number'),
-      array;//this value will get the random number
-    /*
-     1 is minimum and 10 is maximum. This min,max will
-     be use for define range of shuffle numbers
-     */
-    array = shuffle.range(1,10);
+    var auto_http = require('auto_http');
 
-//this should get a random number of array between 1-10
-    console.log(array);
+    auto_http.start(req);
 
-    return res.json({
-      result: array
-    });
+    if(req.method == 'POST'){
 
+      var add_preference = req.param('add_preference');
+
+      var query_find = [{preference_name: add_preference}];
+      var query_new_record = [{
+        preference_name: add_preference,
+        preference_score: 0,
+        preference_value: 0
+      }];
+
+      //work as logic number 2
+      preference.findOrCreate(query_find,query_new_record).exec(function (err, records) {
+
+        if(err){ return res.serverError(err); }
+
+        var add_or_update_record = records;
+
+        //find current last id of DB. this will use for decide update or create.
+        preference.find({select: ['id']}).sort('id DESC').limit(1).exec(function (err, records) {
+
+          var last_id = records[0].id,
+            record_id = add_or_update_record[0].id;
+
+          //debug compare between last_id and record_id(id that we want to update)
+          /*
+          console.log("last id: ", last_id);
+          console.log("get record id: ", record_id);
+          */
+
+          if(last_id != record_id){//update case
+
+            var query_update =
+              "UPDATE preference SET preference_value = "+record_id+", preference_score = preference_score + 1 WHERE id = 1;";
+
+            preference.query(query_update, function (err, updated) {
+
+              if(err){ return res.serverError(err); }
+
+              console.log("updated: ",updated);
+
+            });
+
+          }
+          else{//new record case
+            console.log("new record case");
+          }
+
+        });
+
+      });
+
+    }// end
+
+    return res.json();
+  },//end action
+
+  ShowPreferenceList: function (req,res) {
+
+    res.locals.layout = 'layout2';
+
+    return res.view();
   }
 
 };

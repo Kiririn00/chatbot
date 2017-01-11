@@ -46,7 +46,8 @@
 
   <br>
 
-  <!-- user feedback's preference experiment -->
+  <!-- Experiment Form -------------------------------------------->
+
   <h2>Experiment</h2><br>
 
   <form id="experiment" action="/Experiment/Preference" method="post">
@@ -78,6 +79,18 @@
     <input type="button" id="auto_fill" value="Auto Fill">
 
   </form>
+  <br>
+
+  <!-- add new preference form -->
+  <form action="/Experiment/AddPreference" method="post" id="add_preference">
+
+    <label for="add_preference"> <h3> Add new preference</h3> </label>
+    <input type="text" id="add_preference" />
+    <input type="submit" id="submit_new_preference">
+  </form>
+  <a href="/Experiment/ShowPreferenceList" id="show_preference_list">Show preference list</a>
+
+  <!-------------------------- end all form ----------->
 
 <!--  Show experiment result area -->
 
@@ -99,9 +112,6 @@
         </thead>
         <tbody>
         <!-- open loop for preference table -->
-        <!-- logic
-         1.)
-         -->
         <tr>
           <td data-title="ID" id="id">1</td>
           <td data-title="Name" id="spot_name">Spot's names</td>
