@@ -190,60 +190,54 @@ module.exports = {
 
   },//end action
 
-  PreferenceName: function (req,res) {
+  LabelName: function (req,res) {
 
     /*
+    feature: get label name
     logic
-     1.) make preference name of array. {["temple"],[lake],...}
-     1.1) array will come from DB data
-     2.) index of array must to be same to the number of preference.
-     3.) label on input form
-     4.) in label's put array in it.
+     1.) make label name of array for save label name's data. {["temple"],[lake],...}
+     1.1) value of array will come from DB data.
+     2.) Find column label_name make loop for pick all of data to array.
+    return:JSON
+     label_name: array of label_name column's dara.
     */
 
-    var preference_name_query = "DESCRIBE preference_mock";
+    var label_limit = 10;
 
-    var preference_num = 12;
-    var start_column = 2;
-    var preference_name = [];
-    var preference_name_index = 0;
+    label.find({select: ['label_name','label_score']}).sort('label_score DESC').limit(label_limit).exec(function (err, records) {
 
-    preference_mock.query(preference_name_query, function (err,found) {
+      if(err){return res.serverError(err); }
 
-      if(err){
-        return res.serverError;
+      else{
+
+        return res.json({
+          label:records
+        })
       }
 
-      for(var i=start_column;i<preference_num;i++) {
-
-        preference_name[preference_name_index] = found[i].Field;
-
-        preference_name_index++;
-
-      }
-
-      return res.json({
-        preference_name:preference_name
-      });
-
-    });//end query
-
+    });//end find
 
   },//end action
 
   /*
-  * feature: add or update preference to DB
+  * feature: add or update label to DB
   * logic
-  *   1.) get input preference name[a] from view.
-  *   2.) make condition for check [a] is new one or already has in DB.
-  *   3.) if [a] had in DB, update DB by +1 score. and if preference_value
-  *   still 0 change to 1.
-  *   4.) else if [a] does not save in DB. Make a new record.
+  *   1.) get input label name from view.
+  *   2.) make condition[a] for check is new one or already has in DB.
+  *     2.1) The way of the Condition is compare between 2 variable[b][c].
+  *     2.2) variable[b]'s value is id of record that already has in database OR
+  *          last id (new record)
+  *     2.3) After get variable[b] variable[c] will get the currently last id of table
+  *   3.) if condition[a], [b] and [c] is match so it should update record.
+  *     3.1) So how condition[a] work is compare the 2 last_id is [b][c].
+  *     3.2) First [b] will return last_id or matched id
+  *     3.3) If [b] is last id, [b] and [c] should be the same. That mean
+  *   4.) else if condition[a] does not save in DB. Make a new record.
   * return:JSON
   *   1.) return top 10 preference score.
   *   2.) top 10 preference data
   * */
-  AddPreference: function (req,res) {
+  AddOrCreateLabel: function (req,res) {
 
     var auto_http = require('auto_http');
 
@@ -251,57 +245,60 @@ module.exports = {
 
     if(req.method == 'POST'){
 
-      var add_preference = req.param('add_preference');
-
-      var query_find = [{preference_name: add_preference}];
+      var add_label = req.param('add_label');
+      var query_find = [{label_name: add_label}];
       var query_new_record = [{
-        preference_name: add_preference,
-        preference_score: 0,
-        preference_value: 0
+        label_name: add_label,
+        label_score: 1
       }];
 
-      //work as logic number 2
-      preference.findOrCreate(query_find,query_new_record).exec(function (err, records) {
+      function newRecord() {
 
-        if(err){ return res.serverError(err); }
+        label.create(query_new_record).exec(function (err, finn) {
 
-        var add_or_update_record = records;
-
-        //find current last id of DB. this will use for decide update or create.
-        preference.find({select: ['id']}).sort('id DESC').limit(1).exec(function (err, records) {
-
-          var last_id = records[0].id,
-            record_id = add_or_update_record[0].id;
-
-          //debug compare between last_id and record_id(id that we want to update)
-          /*
-          console.log("last id: ", last_id);
-          console.log("get record id: ", record_id);
-          */
-
-          if(last_id != record_id){//update case
-
-            var query_update =
-              "UPDATE preference SET preference_value = "+record_id+", preference_score = preference_score + 1 WHERE id = 1;";
-
-            preference.query(query_update, function (err, updated) {
-
-              if(err){ return res.serverError(err); }
-
-              console.log("updated: ",updated);
-
-            });
-
-          }
-          else{//new record case
-            console.log("new record case");
-          }
+          if(err){console.log("ERROR");}
+          else{console.log(finn);}
 
         });
 
-      });
+      }
 
-    }// end
+      function updateRecord(update_id) {
+
+        var query_update_record =
+          "UPDATE label SET label_score = label_score + 1 WHERE label_id = "+update_id+";";
+
+        label.query(query_update_record, function (err, updated) {
+
+          if(err){console.log("ERROR");}
+          else{console.log(updated);}
+
+        });
+
+      }
+
+      label.find(query_find).exec(function (err,records) {
+
+        if(err){return res.serverError;}
+        else{
+
+          console.log(records);
+
+          if(records == ""){
+            console.log("new record case");
+            newRecord();
+          }
+          else{
+            console.log("update record case");
+            updateRecord(records[0].label_id);
+          }
+
+        }
+
+      })
+
+
+    }// end if POST
 
     return res.json();
   },//end action

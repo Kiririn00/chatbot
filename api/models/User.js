@@ -11,7 +11,7 @@
 module.exports = {
 
   attributes: {
-    id:{
+    user_id:{
       type: 'integer',
       autoIncrement: true,
       primaryKey: true,

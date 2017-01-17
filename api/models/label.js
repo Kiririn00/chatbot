@@ -5,23 +5,20 @@
 module.exports = {
 
   attributes: {
-    id:{
+    label_id:{
       type: 'integer',
       autoIncrement: true,
       primaryKey: true,
       unique: true
     },
-    preference_name:{
+    label_name:{
       type: 'string',
       size: 100
     },
-    preference_score: {
-      type: 'integer',
-      size: 100
-    },
-    preference_value:{
+    label_score: {
       type: 'integer',
       size: 100
     }
+
   }
 };
