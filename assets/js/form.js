@@ -56,7 +56,7 @@ $("form#search").submit(function(event){
 });//end form submit event
 /*-------------search system-----------------------------------------------------------*/
 
-/*-------- spot preference form's script ----------*/
+/*-------- spot label recommend form's script V.1 ----------*/
 $('form#experiment').submit(function (event) {
 
   var user_preference = [];
@@ -96,16 +96,53 @@ $('form#experiment').submit(function (event) {
 });
 /* ------------ END spot preference form's script  -----------*/
 
+/*
+* feature: send label name and score to API
+* logic:
+*   1.) ignore normal submit
+*   2.) get label name and score from form
+*   3.) request to server by sending POST data
+* */
+
+$('form#label_recommend').submit(function (event) {
+
+  //ignore normal form submit
+  event.preventDefault();
+
+  var label_name = [],
+      label_score = [];
+
+  //get all value from of form
+  var $label_recommend_form = $(this),
+    label_number = $label_recommend_form.find('input#label_number').val(),
+    url = $label_recommend_form.attr('action');
+
+  for(var i=0;i<label_number;i++){
+    label_name[i] = $label_recommend_form.find('label#label_name'+i).text();
+    label_score[i] = $label_recommend_form.find('input#label_score'+i).val();
+  }
+
+  $.get(url,
+    {'label_name[]':JSON.stringify(label_name),'label_score[]':JSON.stringify(label_score)},
+    function (){
+
+
+    }
+
+  );//end podt
+
+});
+
 /*-------------- add new preference form's script--------------------*/
 
-$('form#add_preference').submit(function (event) {
+$('form#add_label').submit(function (event) {
 
   event.preventDefault();
 
-  var add_preference = $('input#add_preference').val();
-  var url = $('form#add_preference').attr('action');
+  var add_label = $('input#add_label').val();
+  var url = $('form#add_label').attr('action');
 
-  $.post(url,{add_preference: add_preference},function (data) {
+  $.post(url,{add_label: add_label},function (data) {
 
     //may be no response data. I don't sure.
 

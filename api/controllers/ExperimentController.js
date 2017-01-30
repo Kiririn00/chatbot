@@ -190,6 +190,48 @@ module.exports = {
 
   },//end action
 
+  PreferenceName: function (req,res) {
+
+    /*
+     logic
+     1.) make preference name of array. {["temple"],[lake],...}
+     1.1)array will come from DB data
+     2.) index of array must to be same to the number of preference.
+     3.) label on input form
+     4.) in label's put array in it.
+     */
+
+    var preference_name_query = "DESCRIBE preference_mock";
+
+    var preference_num = 12;
+    var start_column = 2;
+    var preference_name = [];
+    var preference_name_index = 0;
+
+    preference_mock.query(preference_name_query, function (err,found) {
+
+      if(err){
+        return res.serverError;
+      }
+
+      for(var i=start_column;i<preference_num;i++) {
+
+        preference_name[preference_name_index] = found[i].Field;
+
+        preference_name_index++;
+
+      }
+
+      return res.json({
+        preference_name:preference_name
+      });
+
+    });//end query
+
+
+  },//end action
+
+
   LabelName: function (req,res) {
 
     /*
@@ -224,15 +266,8 @@ module.exports = {
   * logic
   *   1.) get input label name from view.
   *   2.) make condition[a] for check is new one or already has in DB.
-  *     2.1) The way of the Condition is compare between 2 variable[b][c].
-  *     2.2) variable[b]'s value is id of record that already has in database OR
-  *          last id (new record)
-  *     2.3) After get variable[b] variable[c] will get the currently last id of table
-  *   3.) if condition[a], [b] and [c] is match so it should update record.
-  *     3.1) So how condition[a] work is compare the 2 last_id is [b][c].
-  *     3.2) First [b] will return last_id or matched id
-  *     3.3) If [b] is last id, [b] and [c] should be the same. That mean
-  *   4.) else if condition[a] does not save in DB. Make a new record.
+  *   3.) if it's already have in DB, So update by +1 label score
+  *   4.) else if condition[a] does not have in DB. Make a new record.
   * return:JSON
   *   1.) return top 10 preference score.
   *   2.) top 10 preference data
@@ -297,13 +332,278 @@ module.exports = {
 
       })
 
-
     }// end if POST
 
     return res.json();
   },//end action
 
-  ShowPreferenceList: function (req,res) {
+  /*
+  * feature: recommend spot name by [x] algorithm
+  * logic:
+  *  1.) request label's score data from view
+  *   1.1) from view will pick 2 data label_name[a], label_score[b], label_id[c]
+  *  2.) query for pick top 10 of label_name spot_name from DB
+  *  3.) find frequency of top 10 label's spot[y]
+  *  4.) use algorithm [x] for calculate between [y] with [b]
+  *  return: JSON
+  *  1.) ARRAY: recommend spot
+  * */
+
+  LabelRecommend: function (req,res) {
+
+    var auto_http = require('auto_http');
+
+    auto_http.start(req);
+
+    if(req.method == 'GET'){
+
+      //this is [a,b]
+      var label_name = JSON.parse(req.param('label_name')),
+          label_score = JSON.parse(req.param('label_score')),
+          label_id = [], label_length, label_db_name = [],
+          label_query = {
+            select: ['label_id','label_name','label_score']
+          },
+          label_query_sort = "label_score DESC",
+          label_query_limit = 10;
+
+      var article_select_query = {select: ['label_id','spot_id']},
+          label_spot_frequency = [];
+
+      var spot_select_query = {select: ['spot_name']},
+          spot_name;
+
+      var frequency_object;
+
+      /*
+      * feature: sorting by equal item of array
+      * */
+      function sortEqual(array) {
+
+
+      }//end function
+
+      /*
+      * feature: remove duplicate of value in array
+      * parameter:
+      *   1.) array
+      * logic:
+      *   1.) sort the array[a] that come from parameter.
+      *   2.) array that has object num:1 will add to return array[r].
+      *   3.) array that has object num > 1 will be a duplicate case.
+      *   4.) make condition that index of array[a] must be in rage of index
+      *       (can't be a undefined)
+      *   5.) compare between current item and next item
+      *   6.) if it is the same then add only first one to return array[r].
+      *   7.) another one that duplicate will be ignore until next item is unique one.
+      *   8.) if we find unique one, go again from 5.)
+      * return: array
+      *   spot_label_frequency: spot&label's id that removed duplicate
+      * */
+      function removeDuplicate(spot_label_frequency) {
+
+        spot_label_frequency = spot_label_frequency.sort(function (a,b){
+
+          if(a.label_id < b.label_id){return -1;}
+          if(a.label_id > b.label_id){return 1;}
+
+        });
+
+        console.log("before process \n", spot_label_frequency);
+
+        //sortEqual(spot_label_frequency);
+
+        var non_duplicate = [],
+          non_duplicate_counter = 0,
+          duplicate_num = spot_label_frequency.length,
+          duplicate_frequency,
+          current_label_id,
+          next_label_id,
+          current_spot_id,
+          next_spot_id;
+
+        var index;
+
+        var detect_counter = 0;
+
+        for(var i = 0; i<duplicate_num; i++) {
+
+          if(spot_label_frequency[i].num == 1){
+            non_duplicate[non_duplicate_counter] = {
+              label_id: spot_label_frequency[i].label_id,
+              spot_id: spot_label_frequency[i].spot_id,
+              num: spot_label_frequency[i].num
+            };
+
+            non_duplicate_counter++;
+          }
+
+          index = spot_label_frequency.indexOf(spot_label_frequency[i]);
+
+          if(index >= 0 && index < duplicate_num - 1){
+
+            current_label_id = spot_label_frequency[index].label_id;
+            next_label_id = spot_label_frequency[index+1].label_id;
+            current_spot_id = spot_label_frequency[index].spot_id;
+            next_spot_id = spot_label_frequency[index+1].spot_id;
+            duplicate_frequency = spot_label_frequency[index].num;
+
+            //duplicate case
+            if(current_label_id == next_label_id && current_spot_id == next_spot_id && detect_counter == 0){
+
+              detect_counter = 1;
+
+              non_duplicate[non_duplicate_counter] = {
+                label_id: next_label_id,
+                spot_id: next_spot_id,
+                num: duplicate_frequency
+              };
+
+              non_duplicate_counter++;
+
+            }
+            else{
+              detect_counter = 0;
+            }
+
+          }
+
+        }//end loop
+
+        //console.log("after proceed \n",non_duplicate);
+
+        return non_duplicate;
+
+      }//end function
+
+      function takeOnlyOneObject(array) {
+
+        var one_obj = [];
+
+        for(var i=0; i<array.length; i++){
+
+          one_obj[i] = array[i].num;
+
+        }
+
+        return one_obj
+
+      }
+
+      /*
+      * feature: find number of frequency of spot and label that be the same.
+      * parameters:
+      *   1.) array -> label and spot's id
+      * */
+      function countFrequencyLabelSpot(records) {
+
+        //console.log("top 10 label id that's match to spot id \n",records);
+
+        var current_spot_id = [],
+            current_label_id = [],
+            check_spot_id = [],
+            check_label_id = [],
+            label_spot_num = records.length;
+
+        var spot_label_frequency = [],
+            spot_label_frequency_counter = 1;
+
+        var non_duplicate,
+            frequency_object;
+
+        for(var i=0;i<label_spot_num;i++){
+
+          current_spot_id[i] = records[i].spot_id;
+          current_label_id[i] = records[i].label_id;
+
+          for(var j=0;j<label_spot_num;j++){
+
+            check_spot_id[j] = records[j].spot_id;
+            check_label_id[j] = records[j].label_id;
+
+            if(current_spot_id[i] == check_spot_id[j] && current_label_id[i] == check_label_id[j]){
+
+              spot_label_frequency[i] = {
+                label_id: current_label_id[i],
+                spot_id: current_spot_id[i],
+                num: spot_label_frequency_counter++
+              };
+
+            }//end if
+
+          }//end loop for j
+
+          //reset counter
+          spot_label_frequency_counter = 1;
+
+        }//end loop for i
+
+        //console.log("spot x label's frequency \n",spot_label_frequency);
+
+        non_duplicate = removeDuplicate(spot_label_frequency);
+
+        frequency_object = takeOnlyOneObject(non_duplicate);
+
+        return frequency_object;
+      }//end function
+
+      /*
+      * feature: use x algorithm for proceed weight of content
+      * parameter:
+      *   1.)array: data from user
+      *   2.)array: data from db
+      *
+      * */
+      function recommendCalculate(personal_data, db_data) {
+
+        console.log(personal_data, db_data);
+
+      }
+
+
+      //find label table for label_name and label_db_id
+      label.find(label_query).sort(label_query_sort).limit(label_query_limit).exec(function (err, records) {
+
+        if(err){console.log(err);}
+
+        else{
+
+          label_length = records.length;
+
+          //make label id array
+          for(var i=0; i<label_length;i++){
+            label_id[i] = {label_id:records[i].label_id};
+            label_db_name[i] = {label_db_name:records[i].label_name}
+          }
+
+          article.find(label_id,article_select_query).exec(function (err, records) {
+
+            if(err){console.log(err);}
+            else {
+
+              testRemoveDuplicate(records);
+
+              frequency_object = countFrequencyLabelSpot(records);
+
+              recommendCalculate(label_score, frequency_object);
+
+            }// end else
+
+          });//end find article
+
+        }//end else
+
+      });//end find label
+
+      res.json();
+    }
+
+  },
+
+  /*
+  * feature: show view of LabelList
+  * */
+  LabelList: function (req,res) {
 
     res.locals.layout = 'layout2';
 

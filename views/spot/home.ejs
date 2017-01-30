@@ -46,9 +46,9 @@
 
   <br>
 
-  <!-- Experiment Form -------------------------------------------->
+  <!-- Recommend Experiment Form V.1 -------------------------------------------->
 
-  <h2>Experiment</h2><br>
+  <h2>Experiment V1.1.2</h2><br>
 
   <form id="experiment" action="/Experiment/Preference" method="post">
 
@@ -57,9 +57,9 @@
     <!-- open input form loop -->
     <% for (var i = 0; i < 10; i++) { %>
 
-      <br>
-      <label id="preference_name<%= i %>">Test Preference</label>
-      <input type="number" id="preference<%= i %>" />
+    <br>
+    <label id="preference_name<%= i %>">Test Preference</label>
+    <input type="number" id="preference<%= i %>" />
 
     <% } %>
 
@@ -81,14 +81,47 @@
   </form>
   <br>
 
-  <!-- add new preference form -->
-  <form action="/Experiment/AddPreference" method="post" id="add_preference">
+  <hr>
 
-    <label for="add_preference"> <h3> Add new preference</h3> </label>
-    <input type="text" id="add_preference" />
+  <!-- Recommend Experiment Form V2 -->
+
+  <h2>Experiment V 2.0.0</h2><br>
+  <form id="label_recommend" action="/Experiment/LabelRecommend" method="get">
+
+    <label for="user_preference"><h3>User's label</h3></label><br>
+
+    <!-- open input form loop -->
+    <% for (var i = 0; i < 10; i++) { %>
+
+    <br>
+    <label name="label_name<%= i %>" id="label_name<%= i %>">Test Label</label>
+    <input name="label_score<%= i %>" type="number" id="label_score<%= i %>" />
+
+    <% } %>
+
+    <!-- close input form loop -->
+
+    <input type="hidden" id="label_number" value="<%= i %>">
+    <br>
+
+    <input type="submit">
+    <input type="reset">
+    <input type="button" id="label_auto_fill" value="Auto Fill">
+
+  </form>
+
+  <br>
+
+  <!-- end Recommend Experiment Form V2 -->
+
+  <!-- add new preference form -->
+  <form action="/Experiment/AddOrCreateLabel" method="post" id="add_label">
+
+    <label for="add_label"> <h3> Add new label</h3> </label>
+    <input type="text" id="add_label" />
     <input type="submit" id="submit_new_preference">
   </form>
-  <a href="/Experiment/ShowPreferenceList" id="show_preference_list">Show preference list</a>
+  <a href="/Experiment/LabelPreferenceList" id="show_preference_list">Show label list</a>
 
   <!-------------------------- end all form ----------->
 

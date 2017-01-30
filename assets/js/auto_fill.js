@@ -20,6 +20,24 @@ $.get('/Experiment/PreferenceName', function (data) {
 
 /*------------- end auto fill preference's name---------*/
 
+
+/*-------------- auto fill label's name-------------*/
+
+
+$.get('/Experiment/LabelName', function (data) {
+
+  var label_num = data.label.length;
+
+  for(var i=0;i<label_num;i++) {
+
+    document.getElementById('label_name'+i).innerHTML = data.label[i].label_name;
+
+  }
+
+});
+
+/*------------- end auto fill label's name---------*/
+
 /*-------------make array's range of number--------------*/
 
 function arrayRange(min,max) {
@@ -71,31 +89,36 @@ function randomNumbers(min,max) {
 
   console.log("random array: ",array);
 
+  return array;
+
 }
 
 /*-------------end function random number---------------*/
 
 /*-------------- auto fill input number------------------*/
-$('input#auto_fill').click(function (event) {
 
-  function shuffleArray(array) {
-    var currentIndex = array.length, temporaryValue, randomIndex;
+var random_num = [1,2,3,4,5,6,7,8,9,10];
 
-    // While there remain elements to shuffle...
-    while (0 !== currentIndex) {
+function shuffleArray(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
 
-      // Pick a remaining element...
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex -= 1;
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
 
-      // And swap it with the current element.
-      temporaryValue = array[currentIndex];
-      array[currentIndex] = array[randomIndex];
-      array[randomIndex] = temporaryValue;
-    }
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
 
-    return array;
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
   }
+
+  return array;
+}
+
+$('input#auto_fill').click(function (event) {
 
   function fillForm(random_num){
 
@@ -104,13 +127,23 @@ $('input#auto_fill').click(function (event) {
     }
   }
 
-  var random_num = [1,2,3,4,5,6,7,8,9,10];
-
   random_num = shuffleArray(random_num);
 
   fillForm(random_num);
 
   randomNumbers(1,10);
+
+});
+
+$('input#label_auto_fill').click(function (event) {
+
+  var random_num;
+
+  random_num = randomNumbers(1,10);
+
+  for(var i=0;i<random_num.length;i++){
+    document.getElementById('label_score'+i).value = random_num[i];
+  }
 
 });
 
