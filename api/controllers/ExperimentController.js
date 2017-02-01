@@ -4,6 +4,28 @@
  * This controller is use for make a experiment program.
  */
 
+/*
+ * feature: sort object array
+ * parameter:
+ *   1.) array -> array that want to sort
+ *   2.) string -> name of key of object array that want to sort.
+ * return: array
+ *   1.) sorted's array
+ * */
+function sortObjectArray(object_array, sort_key) {
+
+  object_array.sort(function (a,b) {
+
+    if(a[sort_key] < b[sort_key]){ return -1; }
+    if(a[sort_key] > b[sort_key]){ return 1; }
+    else{ return 0;}
+
+  });
+
+  return object_array;
+
+}
+
 module.exports = {
 
   /*
@@ -376,14 +398,6 @@ module.exports = {
       var frequency_object;
 
       /*
-      * feature: sorting by equal item of array
-      * */
-      function sortEqual(array) {
-
-
-      }//end function
-
-      /*
       * feature: remove duplicate of value in array
       * parameter:
       *   1.) array
@@ -399,6 +413,7 @@ module.exports = {
       *   8.) if we find unique one, go again from 5.)
       * return: array
       *   spot_label_frequency: spot&label's id that removed duplicate
+      * comment: we have to change this algorithm to another way.
       * */
       function removeDuplicate(spot_label_frequency) {
 
@@ -476,19 +491,128 @@ module.exports = {
 
       }//end function
 
-      function takeOnlyOneObject(array) {
+      /*
+      * feature: make array of spot x label matrix
+      * parameter: array -> group of label_id &spot_id & num
+      * logic:
+      *   1.) loop by length of array's parameter[p]
+      *   2.)
+      * return: array
+      *   1.) 10 dimension of matrix
+      * */
+      function makeSpotLabelMatrix(group_array) {
 
-        var one_obj = [];
+        sortObjectArray(group_array, "spot_id");
 
-        for(var i=0; i<array.length; i++){
+        console.log("non-duplicate \n", group_array);
 
-          one_obj[i] = array[i].num;
+        //sort spot_id for
+
+        var spot_label_matrix = [],
+          spot_label_matrix_counter = 0,
+          frequency_matrix = [0,0,0,0,0,0,0,0,0,0],
+          group_array_num = group_array.length,
+          label_list = [];
+
+        /*
+        * feature: add matrix to return array
+        * parameter:
+        *   1.) array -> spot'id[s]
+        *   2.) integer -> number of frequency of matrix [f]
+        * logic
+        *   1.) find where is the index of matrix that we want to add frequency[f] to new array.
+        *   2.) make loop check input's array that matching with spot's data[s].
+        *   3.) find the index[i] of array the match condition in 2.).
+        *   4.) use index[i] to point the index of matrix.
+        *   5.) add spot_id[s] to newest index of new array.
+        *   6.) add frequency[f] to matrix, index of matrix is index[i]
+        * */
+        function addMatrix(spot_id, frequency) {
+
+          //check parameter
+          console.log("add parameter: ",spot_id, frequency);
+
+          var label_index = 0;
+
+          //find label's index
+          for(var i=0; i<group_array_num; i++){
+
+            if(spot_id == group_array[i].spot_id){
+
+              label_index = i;
+              //increase matrix
+              frequency_matrix[label_index] = frequency;
+
+            }
+
+          }//end loop
+
+          //add new data to array
+          spot_label_matrix.push({spot_id: spot_id, matrix: frequency_matrix });
+
+          console.log("matrix:", spot_label_matrix);
+
+
+        }//end function
+
+        /*
+        * feature: update matrix
+        * parameter:
+        *   1.) array -> spot_index
+        *   2.) array -> label_index
+        *   2.) array -> frequency of spot&label
+        * */
+        function updateMatrix(matrix_spot_index, matrix_label_index, frequency) {
+
+          var update_spot_index = spot_label_matrix.indexOf(spot_label_matrix[matrix_spot_index]),
+            update_label_index = spot_label_matrix.indexOf(spot_label_matrix[matrix_label_index]);
+
+          spot_label_matrix[update_spot_index].matrix[update_label_index].value = frequency;
+
+          console.log("update index: (", update_spot_index,",",update_label_index, ")");
+
+        }//end function
+
+        //make top label list
+        for(var i=0; i<group_array.length; i++){
+
+          label_list[i] = group_array[i].label_id;
 
         }
 
-        return one_obj
+        // 1st's loop
+        if(spot_label_matrix.length == 0){
 
-      }
+          addMatrix(group_array[0].spot_id, group_array[0].num);
+
+        }
+
+        //make matrix
+        for(i=0; i< group_array_num; i++){
+
+          //loop check matrix
+          for(var j=0; j<spot_label_matrix.length; j++){
+
+
+            //update case (input data has same spot_id)
+            if(group_array[i].spot_id == spot_label_matrix[j].spot_id){
+
+              updateMatrix(j, i, group_array[i].num);
+
+            }
+            else{//add case
+
+              addMatrix(group_array[i].spot_id, group_array[i].num);
+
+            }
+            
+
+          }//end loop
+
+        }//end loop
+
+
+      }//end function
 
       /*
       * feature: find number of frequency of spot and label that be the same.
@@ -498,6 +622,20 @@ module.exports = {
       function countFrequencyLabelSpot(records) {
 
         //console.log("top 10 label id that's match to spot id \n",records);
+
+        function takeOnlyOneObject(array) {
+
+          var one_obj = [];
+
+          for(var i=0; i<array.length; i++){
+
+            one_obj[i] = array[i].num;
+
+          }
+
+          return one_obj
+
+        }//end function
 
         var current_spot_id = [],
             current_label_id = [],
@@ -542,6 +680,8 @@ module.exports = {
 
         non_duplicate = removeDuplicate(spot_label_frequency);
 
+        makeSpotLabelMatrix(non_duplicate);
+
         frequency_object = takeOnlyOneObject(non_duplicate);
 
         return frequency_object;
@@ -556,10 +696,9 @@ module.exports = {
       * */
       function recommendCalculate(personal_data, db_data) {
 
-        console.log(personal_data, db_data);
+        //console.log(personal_data, db_data);
 
       }
-
 
       //find label table for label_name and label_db_id
       label.find(label_query).sort(label_query_sort).limit(label_query_limit).exec(function (err, records) {
@@ -581,8 +720,6 @@ module.exports = {
             if(err){console.log(err);}
             else {
 
-              testRemoveDuplicate(records);
-
               frequency_object = countFrequencyLabelSpot(records);
 
               recommendCalculate(label_score, frequency_object);
@@ -595,7 +732,7 @@ module.exports = {
 
       });//end find label
 
-      res.json();
+      return res.json();
     }
 
   },
