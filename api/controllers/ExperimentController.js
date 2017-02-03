@@ -154,7 +154,7 @@ module.exports = {
       var query_limit = 10;
 
       // query all spot_preference
-      var query = "SELECT `temple`, `natural`, `history`, `lake`, `castle`, `museum`, `market`, `mountain`, `train`, `seichi` FROM `preference_mock` WHERE 1 LIMIT "+query_limit;
+      var query = "SELECT çtemple`, `natural`, `history`, `lake`, `castle`, `museum`, `market`, `mountain`, `train`, `seichi` FROM `preference_mock` WHERE 1 LIMIT "+query_limit;
 
       var spot_query = "SELECT `spot_name` FROM `preference_mock` WHERE 1 LIMIT "+query_limit;
 
@@ -374,7 +374,7 @@ module.exports = {
   LabelRecommend: function (req,res) {
 
     var auto_http = require('auto_http');
-
+    var similarity = require( 'compute-cosine-similarity' );
     auto_http.start(req);
 
     if(req.method == 'GET'){
@@ -382,351 +382,133 @@ module.exports = {
       //this is [a,b]
       var label_name = JSON.parse(req.param('label_name')),
           label_score = JSON.parse(req.param('label_score')),
-          label_id = [], label_length, label_db_name = [],
-          label_id_non_object = [];
-          label_query = {
-            select: ['label_id','label_name','label_score']
-          },
-          label_query_sort = "label_score DESC",
-          label_query_limit = 10;
+          query = "SELECT DISTINCT article.label_id, article.spot_id, label.label_score, COUNT(*) AS 'Num' \n" +
+            "FROM (SELECT * FROM label ORDER BY label.label_score DESC LIMIT 10) label \n" +
+            "INNER JOIN article \n" +
+            "ON label.label_id = article.label_id \n" +
+            "GROUP BY label.label_id, article.spot_id \n" +
+            "ORDER BY label.label_score DESC\n";
 
-      var article_select_query = {select: ['label_id','spot_id']},
-          label_spot_frequency = [];
-
-      var spot_select_query = {select: ['spot_name']},
-          spot_name;
-
-      var frequency_object;
+      var spot_label_matrix = [],
+          spot_label_matrix_counter = 0,
+          top_label_query = {select:['label_id']},
+          top_label_query_limit = 10,
+          top_label_query_sort = "label_score DESC";
 
       /*
-      * feature: remove duplicate of value in array
+      * feature: calculate between personal data and DB's data
       * parameter:
-      *   1.) array
-      * logic:
-      *   1.) sort the array[a] that come from parameter.
-      *   2.) array that has object num:1 will add to return array[r].
-      *   3.) array that has object num > 1 will be a duplicate case.
-      *   4.) make condition that index of array[a] must be in rage of index
-      *       (can't be a undefined)
-      *   5.) compare between current item and next item
-      *   6.) if it is the same then add only first one to return array[r].
-      *   7.) another one that duplicate will be ignore until next item is unique one.
-      *   8.) if we find unique one, go again from 5.)
-      * return: array
-      *   spot_label_frequency: spot&label's id that removed duplicate
-      * comment: we have to change this algorithm to another way.
+      *   1.) array -> user's label score(personal's data)
+      *   2.) array -> db's label frequency(all user's data)
+      * return: array -> cosine
       * */
-      function removeDuplicate(spot_label_frequency) {
+      function algorithmCalculate(user_label_score, db_spot_label_frequency) {
 
-        spot_label_frequency = spot_label_frequency.sort(function (a,b){
+        var spot_weight = [],
+          spot_number = db_spot_label_frequency.length,
+          result;
 
-          if(a.label_id < b.label_id){return -1;}
-          if(a.label_id > b.label_id){return 1;}
+        function similarCosineCase() {
 
-        });
+          var cosine = [],
+            cosine_degree = [];
 
-        console.log("before process \n", spot_label_frequency);
+          for(var i=0; i<spot_number;i++){
 
-        //sortEqual(spot_label_frequency);
+            console.log(user_label_score, db_spot_label_frequency[i].matrix);
 
-        var non_duplicate = [],
-          non_duplicate_counter = 0,
-          duplicate_num = spot_label_frequency.length,
-          duplicate_frequency,
-          current_label_id,
-          next_label_id,
-          current_spot_id,
-          next_spot_id;
+            cosine[i] = similarity(user_label_score, db_spot_label_frequency[i].matrix);
+            cosine_degree[i] = {spot_id: db_spot_label_frequency[i].spot_id ,cosine_degree:Math.acos(cosine[i]) * (180/Math.PI)};
 
-        var index;
-
-        var detect_counter = 0;
-
-        for(var i = 0; i<duplicate_num; i++) {
-
-          if(spot_label_frequency[i].num == 1){
-            non_duplicate[non_duplicate_counter] = {
-              label_id: spot_label_frequency[i].label_id,
-              spot_id: spot_label_frequency[i].spot_id,
-              num: spot_label_frequency[i].num
-            };
-
-            non_duplicate_counter++;
           }
 
-          index = spot_label_frequency.indexOf(spot_label_frequency[i]);
+          return cosine_degree;
 
-          if(index >= 0 && index < duplicate_num - 1){
+        }//end function
 
-            current_label_id = spot_label_frequency[index].label_id;
-            next_label_id = spot_label_frequency[index+1].label_id;
-            current_spot_id = spot_label_frequency[index].spot_id;
-            next_spot_id = spot_label_frequency[index+1].spot_id;
-            duplicate_frequency = spot_label_frequency[index].num;
+        result = similarCosineCase();
 
-            //duplicate case
-            if(current_label_id == next_label_id && current_spot_id == next_spot_id && detect_counter == 0){
+        console.log(result);
 
-              detect_counter = 1;
+      }
 
-              non_duplicate[non_duplicate_counter] = {
-                label_id: next_label_id,
-                spot_id: next_spot_id,
-                num: duplicate_frequency
-              };
 
-              non_duplicate_counter++;
 
-            }
-            else{
-              detect_counter = 0;
-            }
+      /*
+       * feature: add matrix to return array
+       * parameter:
+       *   1.) integer -> spot id
+       *   2.) integer -> label_id
+       *   3.) integer -> frequency
+       *   4.) array -> top label's list
+       * */
+      function addMatrix(spot_id, label_id ,frequency, top_label) {
+
+        var label_index = 0,
+          frequency_matrix = [0,0,0,0,0,0,0,0,0,0];
+
+        //find label's index
+        for(var i=0; i<10; i++){
+
+          if (top_label[i] == label_id) {
+
+            label_index = top_label.indexOf(label_id);
+
+            //increase matrix
+            frequency_matrix[label_index] = frequency;
 
           }
 
         }//end loop
 
-        //console.log("after proceed \n",non_duplicate);
+        //add new data to array
+        spot_label_matrix.push({spot_id: spot_id, matrix: frequency_matrix });
 
-        return non_duplicate;
-
-      }//end function
-
-      /*
-      * feature: make array of spot x label matrix
-      * parameter: array -> group of label_id &spot_id & num
-      * logic:
-      *   1.) loop by length of array's parameter[p]
-      *   2.)
-      * return: array
-      *   1.) 10 dimension of matrix
-      * */
-      function makeSpotLabelMatrix(group_array, top_label) {
-
-        sortObjectArray(group_array, "spot_id");
-
-        console.log("non-duplicate \n", group_array);
-        console.log("top10 label \n", top_label);
-
-        //sort spot_id for
-
-        var spot_label_matrix = [],
-          spot_label_matrix_counter = 0,
-          group_array_num = group_array.length,
-          top_label_list = top_label,
-          update_counter = 0;
-
-        /*
-        * feature: add matrix to return array
-        * parameter:
-        *   1.) integer -> spot id
-        *   2.) integer -> label_id
-        *   3.) integer -> frequency
-        * */
-        function addMatrix(spot_id, label_id ,frequency) {
-
-          var label_index = 0,
-            frequency_matrix = [0,0,0,0,0,0,0,0,0,0];
-
-          //find label's index
-          for(var i=0; i<top_label_list.length; i++){
-
-              if (top_label_list[i] == label_id) {
-
-                label_index = top_label_list.indexOf(label_id);
-
-                //increase matrix
-                frequency_matrix[label_index] = frequency;
-
-              }
-
-          }//end loop
-
-          //add new data to array
-          spot_label_matrix.push({spot_id: spot_id, matrix: frequency_matrix });
-
-          //update counter
-          spot_label_matrix_counter++;
-
-        }//end function
-
-        /*
-        * feature: update matrix
-        * parameter:
-        *   1.) integer -> spot_index
-        *   2.) integer -> label_index
-        *   2.) integer -> frequency of spot&label
-        * */
-        function updateMatrix(spot_id, label_index, frequency) {
-
-          console.log("update");
-
-          update_counter = 1;
-        }//end function
-
-        //make matrix
-        for(var i=0; i<group_array_num; i++) {
-
-          if(i >= 0 && i < group_array_num) {
-
-              if (i == group_array_num - 1) {//last index case
-
-                if (group_array[i].spot_id == group_array[i - 1].spot_id) {
-                  updateMatrix();
-                }
-                else {
-                  addMatrix(group_array[i].spot_id, group_array[i].label_id, group_array[i].num)
-                }
-
-                break;
-
-              }
-
-              //update case
-              if (group_array[i].spot_id == group_array[i + 1].spot_id) {
-
-                updateMatrix(group_array[i].spot_id, group_array[i].label_id, group_array[i].num);
-
-              }
-              else if (update_counter == 0) {//first same case will add
-
-                addMatrix(group_array[i].spot_id, group_array[i].label_id, group_array[i].num);
-
-              }
-              else if (group_array[i].spot_id != group_array[i + 1].spot_id) {//add case
-
-                addMatrix(group_array[i].spot_id, group_array[i].label_id, group_array[i].num);
-                update_counter = 0;
-
-              }
-
-
-          }
-
-        }
-
-        console.log("matrix: \n", spot_label_matrix);
+        //update counter
+        spot_label_matrix_counter++;
 
       }//end function
 
-      /*
-      * feature: find number of frequency of spot and label that be the same.
-      * parameters:
-      *   1.) array -> label and spot's id
-      * */
-      function countFrequencyLabelSpot(records, top_label) {
-
-        //console.log("top 10 label id that's match to spot id \n",records);
-
-        function takeOnlyOneObject(array) {
-
-          var one_obj = [];
-
-          for(var i=0; i<array.length; i++){
-
-            one_obj[i] = array[i].num;
-
-          }
-
-          return one_obj
-
-        }//end function
-
-        var current_spot_id = [],
-            current_label_id = [],
-            check_spot_id = [],
-            check_label_id = [],
-            label_spot_num = records.length;
-
-        var spot_label_frequency = [],
-            spot_label_frequency_counter = 1;
-
-        var non_duplicate,
-            frequency_object;
-
-        for(var i=0;i<label_spot_num;i++){
-
-          current_spot_id[i] = records[i].spot_id;
-          current_label_id[i] = records[i].label_id;
-
-          for(var j=0;j<label_spot_num;j++){
-
-            check_spot_id[j] = records[j].spot_id;
-            check_label_id[j] = records[j].label_id;
-
-            if(current_spot_id[i] == check_spot_id[j] && current_label_id[i] == check_label_id[j]){
-
-              spot_label_frequency[i] = {
-                label_id: current_label_id[i],
-                spot_id: current_spot_id[i],
-                num: spot_label_frequency_counter++
-              };
-
-            }//end if
-
-          }//end loop for j
-
-          //reset counter
-          spot_label_frequency_counter = 1;
-
-        }//end loop for i
-
-        //console.log("spot x label's frequency \n",spot_label_frequency);
-
-        non_duplicate = removeDuplicate(spot_label_frequency);
-
-        makeSpotLabelMatrix(non_duplicate , top_label);
-
-        frequency_object = takeOnlyOneObject(non_duplicate);
-
-        return frequency_object;
-      }//end function
-
-      /*
-      * feature: use x algorithm for proceed weight of content
-      * parameter:
-      *   1.)array: data from user
-      *   2.)array: data from db
-      *
-      * */
-      function recommendCalculate(personal_data, db_data) {
-
-        //console.log(personal_data, db_data);
+      function updateMatrix() {
 
       }
 
-      //find label table for label_name and label_db_id
-      label.find(label_query).sort(label_query_sort).limit(label_query_limit).exec(function (err, records) {
+      //find top label
+      label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
+
+        var top_label = [];
+
+        for(var i = 0; i<records.length;i++) {
+         top_label[i] = records[i].label_id;
+        }
+
+        console.log(top_label);
 
         if(err){console.log(err);}
+        else{}
 
-        else{
+        //make matrix
+        label.query(query, function (err, records) {
 
-          label_length = records.length;
+          if(err){console.log(err)}
+          else {
 
-          //make label id array
-          for(var i=0; i<label_length;i++){
-            label_id[i] = {label_id:records[i].label_id};
-            label_db_name[i] = {label_db_name:records[i].label_name};
-            label_id_non_object[i] = records[i].label_id;
+            for(var i=0; i<records.length; i++) {
+
+              addMatrix(records[i].spot_id, records[i].label_id, records[i].Num, top_label);
+
+            }
+
+            algorithmCalculate(label_score, spot_label_matrix);
+
+            //console.log(spot_label_matrix);
+
+
           }
 
-          article.find(label_id,article_select_query).exec(function (err, records) {
+        });//end label query
 
-            if(err){console.log(err);}
-            else {
-
-              frequency_object = countFrequencyLabelSpot(records, label_id_non_object);
-
-              recommendCalculate(label_score, frequency_object);
-
-            }// end else
-
-          });//end find article
-
-        }//end else
-
-      });//end find label
+      });//end label find
 
       return res.json();
     }
