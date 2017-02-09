@@ -368,13 +368,14 @@ module.exports = {
   *  3.) find frequency of top 10 label's spot[y]
   *  4.) use algorithm [x] for calculate between [y] with [b]
   *  return: JSON
-  *  1.) ARRAY: recommend spot
+  *  1.) ARRAY: recommend spot's weight
   * */
 
   LabelRecommend: function (req,res) {
 
     var auto_http = require('auto_http');
     var similarity = require( 'compute-cosine-similarity' );
+    var XLSX = require('XLSX');
     auto_http.start(req);
 
     if(req.method == 'GET'){
@@ -394,6 +395,84 @@ module.exports = {
           top_label_query = {select:['label_id']},
           top_label_query_limit = 10,
           top_label_query_sort = "label_score DESC";
+
+      /*
+      * feature: record log from algorithm result in excel
+      * parameter:
+      *   1.) array -> matrix and spot'id
+      *   2.) array -> cosine degree and spot's id
+      *   3.) array -> spot and label's name
+      * */
+      function logRecords(matrix, cosine, top_label) {
+
+        var label_num = top_label.length,
+          result_num = matrix.length;
+
+        var ws = {};
+        var range = {s:{c:0, r:0}, e:{c:10000, r:10000}};
+
+        for(var R=0; R<label_num; R++){
+
+          var cell_ref = XLSX.utils.encode_cell({c:0, r:R});//cell's target
+          var cell = {v:top_label[R]};//cell value
+          ws[cell_ref] = cell;
+          cell.v = top_label[R];
+
+        }
+
+        function workBook() {
+          this.SheetNames = [];
+          this.Sheets = {};
+        }
+
+        var wb = new workBook();
+        var ws_name = "test_sheet";
+
+        wb.SheetNames.push(ws_name);
+        wb.Sheets[ws_name] = ws;
+        ws['!ref'] = XLSX.utils.encode_range(range);
+
+        XLSX.writeFile(wb, 'XML/test.xlsx');
+
+        console.log("created excel", wb);
+
+
+      }
+
+      /*
+      * feature: use for show name of any id and what it calculate
+      * parameter:
+      *   1.) integer -> label_id,
+      *   2.) integer -> spot_id,
+      *   3.) integer -> label x spot frequency
+      * */
+      function debugResult(label_id, spot_id, frequency) {
+
+        var spot_query = {select:['spot_name'], spot_id: spot_id},
+            label_query = {select:['label_name'], label_id: label_id},
+            debug_result = [];
+
+        spot.find(spot_query, function (err, spot) {
+          label.find(label_query, function (err2, label) {
+
+            if(err2){console.log(err2);}
+
+            if(err){console.log(err);}
+            else{
+
+              debug_result.push({
+                spot_name: spot[0].spot_name,
+                match_label:label[0].label_name,
+                match_label_frequency: frequency
+              });
+
+              console.log(debug_result);
+            }
+
+            });
+          });
+
+      }//end function
 
       /*
       * feature: calculate between personal data and DB's data
@@ -430,9 +509,9 @@ module.exports = {
 
         console.log(result);
 
+        return result;
+
       }
-
-
 
       /*
        * feature: add matrix to return array
@@ -457,6 +536,8 @@ module.exports = {
             //increase matrix
             frequency_matrix[label_index] = frequency;
 
+            debugResult(top_label[i], spot_id, frequency);
+
           }
 
         }//end loop
@@ -476,7 +557,8 @@ module.exports = {
       //find top label
       label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
 
-        var top_label = [];
+        var top_label = [],
+          algorithm_result;
 
         for(var i = 0; i<records.length;i++) {
          top_label[i] = records[i].label_id;
@@ -499,7 +581,8 @@ module.exports = {
 
             }
 
-            algorithmCalculate(label_score, spot_label_matrix);
+            algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
+            //logRecords(spot_label_matrix, algorithm_result, top_label);
 
             //console.log(spot_label_matrix);
 

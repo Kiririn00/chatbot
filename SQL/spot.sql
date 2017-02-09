@@ -1,100 +1,109 @@
-insert into spot (`spot_id`, `spot_name`) values (1, 'Labuhankananga');
-insert into spot (`spot_id`, `spot_name`) values (2, 'Solnechnogorsk');
-insert into spot (`spot_id`, `spot_name`) values (3, 'Succha');
-insert into spot (`spot_id`, `spot_name`) values (4, 'Oumiao');
-insert into spot (`spot_id`, `spot_name`) values (5, 'La’ershan');
-insert into spot (`spot_id`, `spot_name`) values (6, 'Lixi');
-insert into spot (`spot_id`, `spot_name`) values (7, 'Bárrio');
-insert into spot (`spot_id`, `spot_name`) values (8, 'Oneop');
-insert into spot (`spot_id`, `spot_name`) values (9, 'Molave');
-insert into spot (`spot_id`, `spot_name`) values (10, 'Barreiras');
-insert into spot (`spot_id`, `spot_name`) values (11, 'Uga');
-insert into spot (`spot_id`, `spot_name`) values (12, 'Melaka');
-insert into spot (`spot_id`, `spot_name`) values (13, 'Choco');
-insert into spot (`spot_id`, `spot_name`) values (14, 'Montelíbano');
-insert into spot (`spot_id`, `spot_name`) values (15, 'Stockholm');
-insert into spot (`spot_id`, `spot_name`) values (16, 'Danville');
-insert into spot (`spot_id`, `spot_name`) values (17, 'Masaya');
-insert into spot (`spot_id`, `spot_name`) values (18, 'Ar Rawḑah');
-insert into spot (`spot_id`, `spot_name`) values (19, 'Dulovo');
-insert into spot (`spot_id`, `spot_name`) values (20, 'Salto de Pirapora');
-insert into spot (`spot_id`, `spot_name`) values (21, 'Kwakoa');
-insert into spot (`spot_id`, `spot_name`) values (22, 'Klagen');
-insert into spot (`spot_id`, `spot_name`) values (23, 'Zapod');
-insert into spot (`spot_id`, `spot_name`) values (24, 'Star’');
-insert into spot (`spot_id`, `spot_name`) values (25, 'Rawasan');
-insert into spot (`spot_id`, `spot_name`) values (26, 'Tumba');
-insert into spot (`spot_id`, `spot_name`) values (27, 'Kolodenka');
-insert into spot (`spot_id`, `spot_name`) values (28, 'Radzanów');
-insert into spot (`spot_id`, `spot_name`) values (29, 'Jianjiang');
-insert into spot (`spot_id`, `spot_name`) values (30, 'Saint Petersburg');
-insert into spot (`spot_id`, `spot_name`) values (31, 'Municipio de Copacabana');
-insert into spot (`spot_id`, `spot_name`) values (32, 'Manjakandriana');
-insert into spot (`spot_id`, `spot_name`) values (33, 'Ithari');
-insert into spot (`spot_id`, `spot_name`) values (34, 'Manzanares');
-insert into spot (`spot_id`, `spot_name`) values (35, 'Wetzlar');
-insert into spot (`spot_id`, `spot_name`) values (36, 'Kostrovo');
-insert into spot (`spot_id`, `spot_name`) values (37, 'Brudzeń Duży');
-insert into spot (`spot_id`, `spot_name`) values (38, 'Orsha');
-insert into spot (`spot_id`, `spot_name`) values (39, 'Tanjung Raja');
-insert into spot (`spot_id`, `spot_name`) values (40, 'Sukamahi Satu');
-insert into spot (`spot_id`, `spot_name`) values (41, 'Shuishiying');
-insert into spot (`spot_id`, `spot_name`) values (42, 'Mukacheve');
-insert into spot (`spot_id`, `spot_name`) values (43, 'Nowosielce-Gniewosz');
-insert into spot (`spot_id`, `spot_name`) values (44, 'Nova Cruz');
-insert into spot (`spot_id`, `spot_name`) values (45, 'Kralice na Hané');
-insert into spot (`spot_id`, `spot_name`) values (46, 'Malikisi');
-insert into spot (`spot_id`, `spot_name`) values (47, 'Jenamas');
-insert into spot (`spot_id`, `spot_name`) values (48, 'Lujing Zhen');
-insert into spot (`spot_id`, `spot_name`) values (49, 'Samuhú');
-insert into spot (`spot_id`, `spot_name`) values (50, 'Haduohe');
-insert into spot (`spot_id`, `spot_name`) values (51, 'San Francisco');
-insert into spot (`spot_id`, `spot_name`) values (52, 'Żarki');
-insert into spot (`spot_id`, `spot_name`) values (53, 'Tbilisskaya');
-insert into spot (`spot_id`, `spot_name`) values (54, 'Lo Prado');
-insert into spot (`spot_id`, `spot_name`) values (55, 'Kesabpur');
-insert into spot (`spot_id`, `spot_name`) values (56, 'Point Hill');
-insert into spot (`spot_id`, `spot_name`) values (57, 'Conceição da Feira');
-insert into spot (`spot_id`, `spot_name`) values (58, 'Chişinău');
-insert into spot (`spot_id`, `spot_name`) values (59, 'Samadua');
-insert into spot (`spot_id`, `spot_name`) values (60, 'Karibib');
-insert into spot (`spot_id`, `spot_name`) values (61, 'Malaba');
-insert into spot (`spot_id`, `spot_name`) values (62, 'Pridonskoy');
-insert into spot (`spot_id`, `spot_name`) values (63, '‘Ubāl');
-insert into spot (`spot_id`, `spot_name`) values (64, 'Morropón');
-insert into spot (`spot_id`, `spot_name`) values (65, 'Esquipulas');
-insert into spot (`spot_id`, `spot_name`) values (66, 'Huiwen');
-insert into spot (`spot_id`, `spot_name`) values (67, 'Zhujiang');
-insert into spot (`spot_id`, `spot_name`) values (68, 'San Martín de los Andes');
-insert into spot (`spot_id`, `spot_name`) values (69, 'Orlová');
-insert into spot (`spot_id`, `spot_name`) values (70, 'Sapeken');
-insert into spot (`spot_id`, `spot_name`) values (71, 'Penggakrajeng');
-insert into spot (`spot_id`, `spot_name`) values (72, 'Sundsvall');
-insert into spot (`spot_id`, `spot_name`) values (73, 'Bīleh Savār');
-insert into spot (`spot_id`, `spot_name`) values (74, 'Zhongfeng');
-insert into spot (`spot_id`, `spot_name`) values (75, 'Laiponda');
-insert into spot (`spot_id`, `spot_name`) values (76, 'Nowa Dęba');
-insert into spot (`spot_id`, `spot_name`) values (77, 'Umi');
-insert into spot (`spot_id`, `spot_name`) values (78, 'Isoka');
-insert into spot (`spot_id`, `spot_name`) values (79, 'Góra');
-insert into spot (`spot_id`, `spot_name`) values (80, 'Zachepylivka');
-insert into spot (`spot_id`, `spot_name`) values (81, 'Wichit');
-insert into spot (`spot_id`, `spot_name`) values (82, 'Khamyāb');
-insert into spot (`spot_id`, `spot_name`) values (83, 'Boucinhas');
-insert into spot (`spot_id`, `spot_name`) values (84, 'Velingrad');
-insert into spot (`spot_id`, `spot_name`) values (85, 'Shebekino');
-insert into spot (`spot_id`, `spot_name`) values (86, 'Vanadjou');
-insert into spot (`spot_id`, `spot_name`) values (87, 'Liyang');
-insert into spot (`spot_id`, `spot_name`) values (88, 'Kool Tengah');
-insert into spot (`spot_id`, `spot_name`) values (89, 'Hechuan');
-insert into spot (`spot_id`, `spot_name`) values (90, 'Polonnaruwa');
-insert into spot (`spot_id`, `spot_name`) values (91, 'Huajie');
-insert into spot (`spot_id`, `spot_name`) values (92, 'Tubel');
-insert into spot (`spot_id`, `spot_name`) values (93, 'Chantilly');
-insert into spot (`spot_id`, `spot_name`) values (94, 'Norsborg');
-insert into spot (`spot_id`, `spot_name`) values (95, 'Bình Thủy');
-insert into spot (`spot_id`, `spot_name`) values (96, 'Newark');
-insert into spot (`spot_id`, `spot_name`) values (97, 'Jardinópolis');
-insert into spot (`spot_id`, `spot_name`) values (98, 'Imrīsh');
-insert into spot (`spot_id`, `spot_name`) values (99, 'Portarlington');
-insert into spot (`spot_id`, `spot_name`) values (100, 'Muslyumovo');
+-- phpMyAdmin SQL Dump
+-- version 4.5.2
+-- http://www.phpmyadmin.net
+--
+-- Host: localhost
+-- Generation Time: Feb 08, 2017 at 05:16 PM
+-- Server version: 10.1.16-MariaDB
+-- PHP Version: 5.5.38
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `linkdata`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spot`
+--
+
+CREATE TABLE `spot` (
+  `spot_id` int(10) UNSIGNED NOT NULL,
+  `spot_name` varchar(100) DEFAULT NULL,
+  `createdAt` datetime DEFAULT NULL,
+  `updatedAt` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `spot`
+--
+
+INSERT INTO `spot` (`spot_id`, `spot_name`, `createdAt`, `updatedAt`) VALUES
+(1, 'ミシガンクルーズ', NULL, NULL),
+(2, '草津宿本陣', NULL, NULL),
+(3, '水茎焼陶芸の里', NULL, NULL),
+(4, '忍術村', NULL, NULL),
+(5, 'びわこ花噴水', NULL, NULL),
+(6, '安土城跡', NULL, NULL),
+(7, '近江八幡和船観光協同組合', NULL, NULL),
+(8, '石山寺', NULL, NULL),
+(9, '安土城天主 信長の館', NULL, NULL),
+(10, '醒井宿', NULL, NULL),
+(11, '彦根城', NULL, NULL),
+(12, 'MIHO MUSEUM', NULL, NULL),
+(13, '黒壁スクエア', NULL, NULL),
+(14, '比叡山延暦寺', NULL, NULL),
+(15, '琵琶湖', NULL, NULL),
+(16, '竹生島', NULL, NULL),
+(17, '園城寺', NULL, NULL),
+(18, '水口城', NULL, NULL),
+(19, '八幡堀', NULL, NULL),
+(20, '豊公園', NULL, NULL),
+(21, '八幡山城', NULL, NULL),
+(22, '箱館山スキー場', NULL, NULL),
+(23, '奥伊吹スキー場', NULL, NULL),
+(24, '矢橋帰帆島公園', NULL, NULL),
+(25, 'メタセコイア並木', NULL, NULL),
+(26, '海洋堂フィギュアミュージアム黒壁', NULL, NULL),
+(27, '宝厳寺', NULL, NULL),
+(28, '滋賀県希望が丘文化公園', NULL, NULL),
+(29, '瀬田の唐橋', NULL, NULL),
+(30, '比叡山ドライブウェイ', NULL, NULL),
+(31, '矢橋帰帆島公園', NULL, NULL),
+(32, 'イオンモール草津', NULL, NULL),
+(33, 'びわ湖バレイ', NULL, NULL),
+(34, 'たぬき村', NULL, NULL),
+(35, '豊郷小学校', NULL, NULL),
+(36, '金剛輪寺', NULL, NULL),
+(37, 'キリンビール(株)滋賀工場', NULL, NULL),
+(38, 'ひこねスカイアドベンチャー', NULL, NULL),
+(39, '長浜城', NULL, NULL),
+(40, 'ヤンマーミュージアム', NULL, NULL),
+(41, '琵琶湖博物館', NULL, NULL),
+(42, '木之本地蔵院', NULL, NULL),
+(43, '伊吹山ドライブウェイ', NULL, NULL),
+(44, '賤ヶ岳古戦場', NULL, NULL),
+(45, '立木神社', NULL, NULL),
+(46, '水生植物公園みずの森', NULL, NULL);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `spot`
+--
+ALTER TABLE `spot`
+  ADD PRIMARY KEY (`spot_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `spot`
+--
+ALTER TABLE `spot`
+  MODIFY `spot_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
