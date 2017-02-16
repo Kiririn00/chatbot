@@ -27,15 +27,45 @@
   </p>
 
 </div>
+
+
 <h2></h2>
-<div id="chat_textarea">
-  <div id="chat-form">
-    <textarea id="chat-textarea"></textarea>
-    <div id="chat-send-button">送信</div>
-    <div id="reset-score-button">Reset</div>
-    <form>
-      <input id="activate-feedback-component" type="checkbox">Activate feedback component
-    </form>
-  </div>
+<div class="container">
+  <form id="send_message" action="#" >
+    <div id="chat_textarea">
+      <div id="chat-form">
+        <label for="chat-textarea">Write something</label><br>
+        <textarea id="chat-textarea"></textarea><br>
+        <input class="btn btn-default" type="submit" id="chat-send-button"><br>
+        <label for="activate-feedback-component">Feedback status</label>
+        <input type="checkbox" id="activate-feedback-component">
+      </div>
+    </div>
+  </form>
 </div>
+
+<div class="container">
+
+  <h2> Add new log</h2>
+
+  <form id="add_log" action="/Chat/AddLog" method="post">
+    <div class="form-group">
+      <label for="question">Question</label>
+      <input type="text" class="form-control" id="question">
+    </div>
+    <div class="form-group">
+      <label for="answer">Answer</label>
+      <input type="text" class="form-control" id="answer">
+    </div>
+    <div class="form-group">
+      <label for="component">Component</label>
+      <select class="form-control" id="component">
+      </select>
+    </div>
+    <button type="submit" id="submit" class="btn btn-primary">Submit</button>
+    <button type="reset" id="reset" class="btn btn-default">Reset</button>
+  </form>
+
+</div>
+
 

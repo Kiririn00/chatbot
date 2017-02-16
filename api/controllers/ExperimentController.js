@@ -594,7 +594,7 @@ module.exports = {
       });//end label find
 
       return res.json();
-    }
+    }//end if get
 
   },
 

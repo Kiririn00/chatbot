@@ -1,71 +1,83 @@
 /**
  * Created by ASAWAVETVUTT VARIT on 2016/07/13.
- * Chat.js
- * font-ent handle chat event
- * @return {number}
+ * chat.js
+ * font-end handle chat event
  */
 
-function FeedbackSwitch(){
+function onRejected(err) { console.log(err); }
+var promise = Promise.resolve();
 
-  if($("input#activate-feedback-component:checked").val()) {
-    console.log("チェックされています。");
+function sendMessage() {
 
-    return 1;
-  }
+  $('form#send_message').submit(function (event) {
 
-  else {
-    console.log("チェックされていません。");
+    event.preventDefault();
 
-    return 0;
-  }
+    var $text = $('#chat-textarea');
+    msg = $text.val();
 
-}
+    //popup message that user input
+    $(".chat").append(
+      //text is detail that user input
+      '<p class="them"> ' + msg + '</p>'
+    );
 
-function InsertMessage(msg){
+    $.get('/Chat/TalkSession', {msg: msg, feedback_switch: 0}, function (data) {
+      $(".chat").append(
+        //text is detail that bot response
+        '<p class="me"> ' + data.answer + '</p>'
+      );
+    });
 
-  var feedback_switch = FeedbackSwitch();
+    $text.val('');//clear textarea
 
-  io.socket.post('/Room/BroadcastMessage',{msg: msg,feedback_switch: feedback_switch},function(data){
-    console.log(data.message);
   });
 }
 
-function SendMessage() {
+/*
+* feature: get the component name from server
+* */
+function getComponent() {
 
-  //get id chat-textarea
-  var $text = $('#chat-textarea');
-  //put value of text area to variable name msg
-  var msg = $text.val();
+    $.get('/Chat/GetComponent', function (res) {
 
-  InsertMessage(msg);
+      var component_length = res.component.length;
 
-  $text.val('');//clear textarea
+      for(var i=0; i<component_length; i++){
+        $('select#component').append("<option>"+res.component[i].component_name+"</option>");
+      }
+
+    });
 
 }
 
-function ResetScore(){
-  io.socket.get('/Spot/ResetScore',function (data) {
-    console.log(data);
-  });
-}
+/*
+* feature: send post data of add_log form to server
+* */
+function postLog() {
 
-//pass model value parameter for delete all
-//data in model.
-function RemoveSocketData(event){
-  var model = event.data.model;
-  var id;
-  $.getJSON('/'+model,function(data){//get json from /text
+  $('form#add_log').submit(function (event) {
+    event.preventDefault();
 
-      $.each(data, function(key,value){//split them
-        console.log(value.id);//debug id of json
-        id = value.id;
-        io.socket.delete('/'+model+'/' + id, function (resData) {//delete by if
-          console.log(resData);
-          resData;
-        });
+    var $add_log_form = $(this),
+      question = $add_log_form.find('input#question').val(),
+      answer = $add_log_form.find('input#answer').val(),
+      component = $add_log_form.find('select#component').val(),
+      url = $add_log_form.attr('action'),
+      post_data = {question: question, answer: answer, component: component};
+
+      $.post(url,post_data,function () {
+          alert("record added");
+          $add_log_form.val('');
       });
 
   });
-
 }
+
+promise
+  .then(getComponent)
+  .then(sendMessage)
+  .then(postLog)
+  .catch(onRejected);
+
 

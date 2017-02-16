@@ -11,255 +11,208 @@
  * And TalkSession will pick suit calculate api.
  */
 
-var request = require('request');
+var request = require('request'),
+  Promise = require('promise');
+
+promise = Promise.resolve();
+
+/*
+ * feature: make JSON from parameter's string
+ * parameter: string -> string that will show in json return
+ * return: JSON -> parameter's string
+ * */
+function api_res(res,api_res) {
+  return res.json({
+    answer: api_res
+  });
+}//end function
+
+function onRejected(err) {
+  console.log(err);
+}
 
 module.exports = {
 
   Debug: function (req,res) {
 
-    log.find({ where: { question: msg } }).exec(function find(err, found){
-
-
-    });//end find model
   },
 
-  //show view of chat box(for test chat or debug)
+  /*
+  * feature: use for get component data
+  * */
+  GetComponent: function (req, res) {
+
+    if(req.method == "GET") {
+
+      var auto_http = require('auto_http');
+
+      auto_http.start(req);
+
+      var log_query = {select: ['component_name']};
+
+      function taskA() {
+        component.find(log_query).exec(function (err, record) {
+          console.log("return record", record);
+          return res.json({component: record});
+        })
+      }
+
+      promise
+        .then(taskA)
+        .catch(onRejected);
+
+    }
+    else{api_res(res, "no get data")}
+
+  },//end action
+
+  /*
+  * feature: add new record to log table
+  * */
+  AddLog: function (req,res) {
+
+    var auto_http = require('auto_http');
+
+    auto_http.start(req);
+
+    if(req.method == 'POST'){
+
+      var question = req.param('question'),
+        answer = req.param('answer'),
+        component_name = req.param('component'),
+        component_query = {select:['component_id'], component_name: component_name},
+        component_id;
+
+      function findComponentId() {
+        component.find(component_query).exec(function (err, record) {
+
+          var log_new_record = [{
+            question: question,
+            answer: answer,
+            component_id: record[0].component_id
+
+          }];
+
+          log.create(log_new_record).exec(function () {
+            console.log("new record added");
+          });
+
+        });
+      }
+
+      promise
+        .then(findComponentId)
+        .catch(onRejected);
+
+      api_res(res,"POST case");
+
+    }
+    else{ api_res(res,"this API response only POST data"); }
+
+  },
+
+  /*
+  * feature: show view of chat box(for test chat or debug)
+  * */
 	ChatBox: function(req,res){
+
+	  res.locals.layout = 'chat_layout';
 
     return res.view();
   },
 
-  //this is session component, it will handle what component should use
+  /*
+  * feature: this is session component, it will handle what component should use
+  * logic:
+  *   1.) compare between question from view and from db that math or not
+  *     1.1) if not return no component that match.
+  *   2.) In match case, make a conversation sentences
+  *     2.1) method that use for make conversation will depend on type of question
+  * */
   TalkSession: function(req,res){
 
-    var err_msg = "Don't Understand";
+    var err_msg = "Don't Understand",
+      stop_sentence = "stop_sentence",
+      feedback = "feedback",
+      component_name,
+      msg = req.param('msg'),
+      feedback_switch = req.param('feedback_switch'),
+      log_query = {select:['component_id', 'question', 'answer'], where: {question: msg}},
+      done_conversation = "done recommendation";
 
-    //define name of component in DB
-    var stop_sentence = "stop_sentence";
-    var feedback = "feedback";
-
-    var component;
-
-    //message in textarea from view (GET)
-    if(req.method = 'GET') {
-      var msg = req.param('msg');
-      var feedback_switch = req.param('feedback_switch');
+    if(msg == null){
+      return api_res(res, "no msg")
     }
+
+    function labelRecommend(){
+
+
+
+    }//end function
+
+    /*
+    * feature: make conversation for recommend spot of chat-bot
+    * parameter: array -> set of answer
+    * return: string -> conversations
+    * */
+    function recommendSpot(log) {
+
+      //if user say done will destroy all of session
+      if(log.question == done_conversation){
+        req.session.destroy();
+        return res.json({answer: "got it"});
+      }
+
+      if(req.session.counter == "NaN"){req.session.counter = 1;}
+      else{
+        req.session.counter++;
+      }
+
+
+
+      return res.json({answer:"count: "+req.session.counter});
+
+    }
+
+    function matchingComponent() {
+
+      //this function is for check input from user(question),
+      //which are input are match with component or not match nether.
+      log.find(log_query).exec(function find(err, log) {
+
+        console.log(log);
+
+        if(log.length == 0){return api_res(res, err_msg);}
+
+        var component_query = {select:['component_name', 'component_id'], where:{component_id: log[0].component_id}};
+
+        component.find(component_query).exec(function (err, record) {
+
+          if(record[0].component_id == 1){
+            return res.json({answer:log[0].answer})
+          }
+          else if(record[0].component_id == 2){
+            recommendSpot(log[0]);
+          }
+          else{
+            return api_res(res, err_msg);
+          }
+
+        });//end component find
+
+      });//end log find
+
+    }//end function
 
     //debug check message from view
     console.log("Debug data from view: "+msg);
-    console.log("Debug check status: "+feedback_switch);
+    console.log("Debug check status of feedback: "+feedback_switch);
 
-    function setCallback(){}
+    promise
+      .then(matchingComponent)
+      .catch(onRejected)
 
-    //this function will use for call component's API
-    //name of component will use as parameter
-    function callComponent(component) {
-
-      var options = {
-        url: 'http://localhost:1337/Chat/'+component+'?msg='+msg+'&feedback_switch='+feedback_switch,
-        method: 'GET',
-        json: true
-      };
-
-      //Call Subsentence API
-      request(options, function (err, response, body) {
-
-        if (!err && response.statusCode == 200) {
-          setCallback();
-          api_res(body.answer);
-
-        }
-        else {
-          console.log("HTTP Error" + response.statusCode);
-        }
-
-      });
-
-    }
-
-    //this function is for check input from user(question),
-    //which are input are match with component or not match nether.
-    log.find({ where: { question: msg} }).exec(function find(err, found){
-
-        setCallback();
-
-        //if not error will get component type from DB
-        if(found.length != 0) {
-          component = found[0].component;
-        }
-        //match stopsentence component case
-        if(!err && component == stop_sentence){
-          callComponent("StopSentence");
-        }
-        //match feedback component case
-        else if(component == feedback){
-          callComponent("Feedback");
-        }
-        else{
-          api_res(err_msg);
-        }
-
-    });
-
-    //end find model
-
-    function api_res(api_res) {
-      return res.json({
-        answer: api_res
-      });
-    }
-
-  },
-
-  //Stopsentence Component refer from chat bot architecture model
-  StopSentence: function (req,res) {
-
-    var answer;
-    var err_msg = "Error: no value call to this api or something went wrong";
-
-    var msg = req.param('msg');
-    if(msg != "undefined") {
-      console.log("debug stopsentence get: "+msg);
-    }
-
-    //callback function for put data from mySQL to array
-    function callbackData(found,i){}
-
-    //find data from mySQL
-    log.find({}).exec(function find(err, chat_log){
-
-      for(var i=0;i<chat_log.length;i++){//loop by all record
-
-        //put mySQL data record to value
-        callbackData(chat_log[i],i);
-
-        if(msg == chat_log[i].question){//match case(it should match)
-          answer = chat_log[i].answer;
-          break;
-        }
-        else if(msg==""){//Error case(Normally it should match)
-          answer = err_msg;
-        }
-        else{//Error case(Normally it should match)
-          answer = err_msg;
-        }
-
-      }
-
-      //return all data in JSON
-      return res.json({
-        chat_log: chat_log,
-        answer: answer
-      });
-
-    });
-
-  },//end action
-
-  Feedback: function (req,res) {
-
-    var answer;
-    var cal_feedback_switch;
-
-    var msg = req.param('msg');
-    var feedback_switch = req.param('feedback_switch');//0 or 1
-
-    console.log("Debug feedback_switch from feedback component: "+feedback_switch);
-
-    function setCallback(){}
-
-    //SQL no error case
-    function sql_result(result){
-      console.log(result);
-    }
-
-    //this is function for decrease score of DB
-    //parameter spot:name of spot, decrease: number for - score
-    function decreaseScore(spot_name, decrease){
-
-      setCallback();
-
-      rate.query('UPDATE rate SET score = score - '+decrease+' WHERE spot_name = "'+spot_name+'"', function (err, result) {
-
-        if (err){
-          error(err);
-        }
-        else{
-          sql_result(result);
-        }
-
-      });
-    }
-
-    function zeroScore(spot_name){
-
-      rate.query('UPDATE rate SET score = 0 WHERE spot_name = "'+spot_name+'"', function (err, result) {
-
-        if (err){
-          error(err);
-        }
-        else{
-          sql_result(result);
-        }
-
-      });
-    }
-
-    //main operation
-
-    //sort score in DB
-    rate.find({ sort: 'score DESC' },function (err,result) {
-
-      setCallback();
-
-      //not calculate score case
-      if(feedback_switch == 0) {
-        cal_feedback_switch = 0;
-      }
-      else if(feedback_switch == 1){
-        cal_feedback_switch = 1;
-      }
-
-      if (msg == "No") {
-
-        if(feedback_switch == 1){
-          zeroScore(result[0].spot_name);
-          decreaseScore(result[1].spot_name,2);
-        }
-        else if(feedback_switch == 0) {
-          decreaseScore(result[0].spot_name,5);
-        }
-
-      }
-      else {
-
-        console.log("Debug return from feedback component: " + result[0].spot_name);
-
-        answer = "From your feedback data we recommend " + result[0].spot_name;
-
-      }
-
-      rate.find({ sort: 'score DESC' },function (err,result) {
-
-        setCallback();
-
-        answer = "we recommend "+result[0].spot_name;
-
-        return res.json({
-          answer: answer
-        })
-
-      });
-
-    });
-  },
-  NoFeedback: function () {
-   //if feedback button not checked. will no calculate
-  },
-  RegularMatcher: function(req,res){
-
-  }
+  }//end action
 
 };
 

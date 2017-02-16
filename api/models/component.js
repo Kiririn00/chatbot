@@ -1,26 +1,19 @@
 /**
- * Created by ASAWAVETVUTT VARIT on 2016/06/27.
+ * Created by Varit on 2/14/17.
  */
 
 module.exports = {
 
   attributes: {
-    log_id:{
+    component_id:{
       type: 'integer',
       autoIncrement: true,
       primaryKey: true,
       unique: true
     },
-    question: {
+    component_name: {
       type: 'string',
       size: 100
-    },
-    answer:{
-      type: 'string',
-      size: 500
-    },
-    component_id:{
-      type: 'integer'
     }
   }
 };
