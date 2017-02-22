@@ -23,7 +23,7 @@ module.exports = {
       sails.log("Open socket!, create room: "+JSON.stringify(req.socket.rooms));
 
       return res.json({
-        message: 'Subscribed to a fun room called '+socket_id+'!'
+        conversation: 'Subscribed to a fun room called '+socket_id+'!'
       });
     });
 
@@ -43,7 +43,7 @@ module.exports = {
 
     var feedback_switch = req.param('feedback_switch');
 
-    sails.sockets.broadcast(socket_id ,{ msg: msg, feedback_switch:feedback_switch});
+    sails.sockets.broadcast(socket_id, 'conversation' ,{ msg: msg, feedback_switch:feedback_switch});
 
   }
 

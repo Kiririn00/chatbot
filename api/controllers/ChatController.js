@@ -131,6 +131,30 @@ module.exports = {
   * */
   TalkSession: function(req,res){
 
+    function openSocket() {
+
+      if (!req.isSocket) {
+        return res.badRequest();
+      }
+
+      var socket_id = sails.sockets.getId(req.socket);
+
+      sails.sockets.join(req, socket_id, function (err) {
+        if (err) {
+          return res.serverError(err);
+        }
+
+        //console.log(req.socket.rooms);
+        sails.log("Open socket!, create room: " + JSON.stringify(req.socket.rooms));
+
+        return res.json({
+          conversation: 'Subscribed to a fun room called ' + socket_id + '!'
+        });
+      });
+
+    }
+
+
     var err_msg = "Don't Understand",
       stop_sentence = "stop_sentence",
       feedback = "feedback",
@@ -146,7 +170,137 @@ module.exports = {
 
     function labelRecommend(){
 
+      var similarity = require( 'compute-cosine-similarity' );
 
+      //this is [a,b]
+      var label_name = JSON.parse(req.param('label_name')),
+        label_score = JSON.parse(req.param('label_score')),
+        query = "SELECT DISTINCT article.label_id, article.spot_id, label.label_score, COUNT(*) AS 'Num' \n" +
+          "FROM (SELECT * FROM label ORDER BY label.label_score DESC LIMIT 10) label \n" +
+          "INNER JOIN article \n" +
+          "ON label.label_id = article.label_id \n" +
+          "GROUP BY label.label_id, article.spot_id \n" +
+          "ORDER BY label.label_score DESC\n";
+
+      var spot_label_matrix = [],
+        spot_label_matrix_counter = 0,
+        top_label_query = {select:['label_id']},
+        top_label_query_limit = 10,
+        top_label_query_sort = "label_score DESC";
+
+      /*
+       * feature: calculate between personal data and DB's data
+       * parameter:
+       *   1.) array -> user's label score(personal's data)
+       *   2.) array -> db's label frequency(all user's data)
+       * return: array -> cosine
+       * */
+      function algorithmCalculate(user_label_score, db_spot_label_frequency) {
+
+        var spot_weight = [],
+          spot_number = db_spot_label_frequency.length,
+          result;
+
+        function similarCosineCase() {
+
+          var cosine = [],
+            cosine_degree = [];
+
+          for(var i=0; i<spot_number;i++){
+
+            console.log(user_label_score, db_spot_label_frequency[i].matrix);
+
+            cosine[i] = similarity(user_label_score, db_spot_label_frequency[i].matrix);
+            cosine_degree[i] = {spot_id: db_spot_label_frequency[i].spot_id ,cosine_degree:Math.acos(cosine[i]) * (180/Math.PI)};
+
+          }
+
+          return cosine_degree;
+
+        }//end function
+
+        result = similarCosineCase();
+
+        console.log(result);
+
+        return result;
+
+      }
+
+      /*
+       * feature: add matrix to return array
+       * parameter:
+       *   1.) integer -> spot id
+       *   2.) integer -> label_id
+       *   3.) integer -> frequency
+       *   4.) array -> top label's list
+       * */
+      function addMatrix(spot_id, label_id ,frequency, top_label) {
+
+        var label_index = 0,
+          frequency_matrix = [0,0,0,0,0,0,0,0,0,0];
+
+        //find label's index
+        for(var i=0; i<10; i++){
+
+          if (top_label[i] == label_id) {
+
+            label_index = top_label.indexOf(label_id);
+
+            //increase matrix
+            frequency_matrix[label_index] = frequency;
+
+            debugResult(top_label[i], spot_id, frequency);
+
+          }
+
+        }//end loop
+
+        //add new data to array
+        spot_label_matrix.push({spot_id: spot_id, matrix: frequency_matrix });
+
+        //update counter
+        spot_label_matrix_counter++;
+
+      }//end function
+
+      //find top label
+      label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
+
+        var top_label = [],
+          algorithm_result;
+
+        for(var i = 0; i<records.length;i++) {
+          top_label[i] = records[i].label_id;
+        }
+
+        console.log(top_label);
+
+        if(err){console.log(err);}
+        else{}
+
+        //make matrix
+        label.query(query, function (err, records) {
+
+          if(err){console.log(err)}
+          else {
+
+            for(var i=0; i<records.length; i++) {
+
+              addMatrix(records[i].spot_id, records[i].label_id, records[i].Num, top_label);
+
+            }
+
+            algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
+            //logRecords(spot_label_matrix, algorithm_result, top_label);
+
+            //console.log(spot_label_matrix);
+
+          }
+
+        });//end label query
+
+      });//end label find
 
     }//end function
 
@@ -163,21 +317,22 @@ module.exports = {
         return res.json({answer: "got it"});
       }
 
+      //start recommend case. start counted
       if(req.session.counter == "NaN"){req.session.counter = 1;}
       else{
         req.session.counter++;
       }
 
-
-
       return res.json({answer:"count: "+req.session.counter});
 
     }
 
+    /*
+    * feature: check input from view that what is component of that sentence or conversation
+    * return: JSON -> suited sentence
+    * */
     function matchingComponent() {
 
-      //this function is for check input from user(question),
-      //which are input are match with component or not match nether.
       log.find(log_query).exec(function find(err, log) {
 
         console.log(log);

@@ -1,37 +1,55 @@
 /**
  * Created by ASAWAVETVUTT VARIT on 2016/07/13.
- * chat.js
+ * Chat.js
  * font-end handle chat event
  */
 
 function onRejected(err) { console.log(err); }
 var promise = Promise.resolve();
 
-function sendMessage() {
+/*
+* feature: open room and socket
+* */
+function doConversation() {
 
-  $('form#send_message').submit(function (event) {
+  io.socket.on('connect', function () {
 
-    event.preventDefault();
+    $('form#send_message').submit(function (event) {
 
-    var $text = $('#chat-textarea');
-    msg = $text.val();
+      event.preventDefault();
 
-    //popup message that user input
-    $(".chat").append(
-      //text is detail that user input
-      '<p class="them"> ' + msg + '</p>'
-    );
+      var $text = $('#chat-textarea');
+      msg = $text.val();
+      $text.val('');//clear textarea
 
-    $.get('/Chat/TalkSession', {msg: msg, feedback_switch: 0}, function (data) {
-      $(".chat").append(
-        //text is detail that bot response
-        '<p class="me"> ' + data.answer + '</p>'
-      );
+      io.socket.post('/Room/BroadcastMessage',{msg: msg,feedback_switch: 0},function(data){
+        console.log(data);
+      });
+
     });
 
-    $text.val('');//clear textarea
+    io.socket.on('conversation', function (data) {
 
+      console.log(data);
+
+      //popup message that user input
+      $(".chat").append(
+        //text is detail that user input
+        '<p class="them"> ' + data.msg + '</p>'
+      );
+
+      io.socket.get('/Chat/TalkSession', {msg: msg, feedback_switch: 0}, function (data) {
+        $(".chat").append(
+          //text is detail that bot response
+          '<p class="me"> ' + data.answer + '</p>'
+        );
+      });
+
+    });
+
+    //NewRoom();
   });
+
 }
 
 /*
@@ -74,9 +92,10 @@ function postLog() {
   });
 }
 
+
 promise
   .then(getComponent)
-  .then(sendMessage)
+  .then(doConversation)
   .then(postLog)
   .catch(onRejected);
 
