@@ -32,11 +32,13 @@
 <h2></h2>
 <div class="container">
   <form id="send_message" action="#" >
+    <input type="hidden" id="user_id" value="<%= user_id %>">
     <div id="chat_textarea">
       <div id="chat-form">
         <label for="chat-textarea">Write something</label><br>
         <textarea id="chat-textarea"></textarea><br>
         <input class="btn btn-default" type="submit" id="chat-send-button"><br>
+        <button type="button" id="reset_progress" class="btn btn-default">Reset Progress</button>
         <label for="activate-feedback-component">Feedback status</label>
         <input type="checkbox" id="activate-feedback-component">
       </div>

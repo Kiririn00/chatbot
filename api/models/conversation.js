@@ -1,26 +1,26 @@
 /**
- * Created by Varit on 2/23/17.
+ * Created by ASAWAVETVUTT VARIT on 2016/06/27.
  */
+
 module.exports = {
 
   attributes: {
-    log_id:{
+    conversation_id:{
       type: 'integer',
       autoIncrement: true,
       primaryKey: true,
       unique: true
     },
-    user_id:{
-      type: 'integer',
+    question: {
+      type: 'string',
       size: 100
     },
-    component_id: {
-      type: 'integer',
-      size: 100
-    },
-    message:{
+    answer:{
       type: 'string',
       size: 500
+    },
+    component_id:{
+      type: 'integer'
     }
   }
 };

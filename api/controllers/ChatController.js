@@ -23,7 +23,8 @@ promise = Promise.resolve();
  * */
 function api_res(res,api_res) {
   return res.json({
-    answer: api_res
+    answer: api_res,
+    component_id: 0
   });
 }//end function
 
@@ -44,15 +45,11 @@ module.exports = {
 
     if(req.method == "GET") {
 
-      var auto_http = require('auto_http');
-
-      auto_http.start(req);
-
       var log_query = {select: ['component_name']};
 
       function taskA() {
         component.find(log_query).exec(function (err, record) {
-          console.log("return record", record);
+          //console.log("return record", record);
           return res.json({component: record});
         })
       }
@@ -93,7 +90,7 @@ module.exports = {
 
           }];
 
-          log.create(log_new_record).exec(function () {
+          conversation.create(log_new_record).exec(function () {
             console.log("new record added");
           });
 
@@ -116,7 +113,20 @@ module.exports = {
   * */
 	ChatBox: function(req,res){
 
-	  res.locals.layout = 'chat_layout';
+    res.locals.layout = 'chat_layout';
+
+	  if(req.method == "GET") {
+
+      var user_id = req.param('user_id');
+
+      if(typeof user_id == "undefined"){return res.view('user/Login');}
+      else {
+        return res.view({
+          user_id:user_id
+        });
+      }
+
+    }
 
     return res.view();
   },
@@ -131,43 +141,33 @@ module.exports = {
   * */
   TalkSession: function(req,res){
 
-    function openSocket() {
-
-      if (!req.isSocket) {
-        return res.badRequest();
-      }
-
-      var socket_id = sails.sockets.getId(req.socket);
-
-      sails.sockets.join(req, socket_id, function (err) {
-        if (err) {
-          return res.serverError(err);
-        }
-
-        //console.log(req.socket.rooms);
-        sails.log("Open socket!, create room: " + JSON.stringify(req.socket.rooms));
-
-        return res.json({
-          conversation: 'Subscribed to a fun room called ' + socket_id + '!'
-        });
-      });
-
-    }
-
-
     var err_msg = "Don't Understand",
       stop_sentence = "stop_sentence",
       feedback = "feedback",
       component_name,
       msg = req.param('msg'),
       feedback_switch = req.param('feedback_switch'),
+      user_id = req.param('user_id'),
       log_query = {select:['component_id', 'question', 'answer'], where: {question: msg}},
-      done_conversation = "done recommendation";
+      done_conversation = "done recommendation",
+      socket_id = sails.sockets.getId(req.socket),
+      start_component = 2,
+      end_component = 3,
+      yes_component = 4,
+      no_component = 5;
 
     if(msg == null){
       return api_res(res, "no msg")
     }
+    else if(!req.isSocket) {
+      return api_res(res, "no socket ")
+    }
 
+    /*
+    * feature: calculate weight of spot by use 2 matrix
+    * parameter:
+    *   1.) array[10] -> matrix of label score
+    * */
     function labelRecommend(){
 
       var similarity = require( 'compute-cosine-similarity' );
@@ -309,53 +309,153 @@ module.exports = {
     * parameter: array -> set of answer
     * return: string -> conversations
     * */
-    function recommendSpot(log) {
+    function recommendSpot(conversation) {
 
-      //if user say done will destroy all of session
-      if(log.question == done_conversation){
-        req.session.destroy();
-        return res.json({answer: "got it"});
-      }
+      console.log("input parameter: ", conversation);
 
-      //start recommend case. start counted
-      if(req.session.counter == "NaN"){req.session.counter = 1;}
-      else{
-        req.session.counter++;
-      }
+      var log_query = {
+        select:[
+          'log_id',
+          'component_id',
+          'message'],
+        where:{
+          or :[
+            {component_id:start_component},
+            {component_id:end_component},
+            {component_id:yes_component},
+            {component_id:no_component}
+          ]
+        }
+      },
+        new_log_query = [{
+          component_id: end_component,
+          message:"Error"
+        }],
+        index_end_component;
 
-      return res.json({answer:"count: "+req.session.counter});
+
+      log.find(log_query).sort('log_id ASC').exec(function (err, record) {
+        //if start is last index add end
+        //note: this method is not good. May be we should change component number to
+        //end component instead add a new log. Because log should insert by only
+        //user's input.
+        //note2: in debug's log it's not show newest record that add by this function
+        /*
+        function clearConversation() {
+          if (record[record.length - 1].component_id == start_component) {
+            log.create(new_log_query).exec(function (err, record) {
+            });
+          }
+        }
+        */
+
+        console.log("debug: \n",record);
+
+        function countProcess() {
+
+          //find end component
+          for (var i = record.length; i >= 0; i--) {
+
+            if (record[i-1].component_id == end_component) {
+
+              //console.log("log id of end component: ", record[i-1].log_id);
+              index_end_component = i-1;
+              break;
+
+            }
+
+          }//end loop
+
+          console.log("index of end component: ", index_end_component);
+
+          //after last end component
+          for (var l = index_end_component; l < record.length; l++) {
+
+            console.log("conversation: ",record[l]);
+          }
+
+
+        }
+        promise
+          //.then(clearConversation)
+          .then(countProcess)
+          .catch(onRejected);
+
+
+
+      });//end find
+
+      return res.json({
+        answer:"recommend case",
+        component_id: conversation.component_id
+      });
 
     }
 
     /*
+    * feature: record log
+    * */
+    function logRecord(component_id) {
+
+      var log_query = [{
+        component_id: component_id,
+        user_id: user_id,
+        message: msg
+      }];
+
+      log.create(log_query).exec(function (err, record) {});
+    }
+
+    /*
     * feature: check input from view that what is component of that sentence or conversation
+    * logic:
+    *   1.) join socket room of client
+    *   2.) make log of user's input
+    *     2.1) save log to DB
+    *   3.) check user 's input component from DB
+    *   4.) use function that suit from component
     * return: JSON -> suited sentence
     * */
     function matchingComponent() {
 
-      log.find(log_query).exec(function find(err, log) {
+      sails.sockets.join(req, socket_id, function () {
 
-        console.log(log);
+       var conversation_query = {select:['component_id', 'question', 'answer'], where: {question: msg}};
 
-        if(log.length == 0){return api_res(res, err_msg);}
+        console.log('work on room: ' + socket_id + '!');
 
-        var component_query = {select:['component_name', 'component_id'], where:{component_id: log[0].component_id}};
+        conversation.find(conversation_query).exec(function find(err, conversation) {
 
-        component.find(component_query).exec(function (err, record) {
-
-          if(record[0].component_id == 1){
-            return res.json({answer:log[0].answer})
-          }
-          else if(record[0].component_id == 2){
-            recommendSpot(log[0]);
-          }
-          else{
-            return api_res(res, err_msg);
+          //make log
+          if(conversation.length != 0) {//match
+            logRecord(conversation[0].component_id);
           }
 
-        });//end component find
+          if(conversation.length == 0){return api_res(res, err_msg);}
 
-      });//end log find
+          var component_query = {select:['component_name', 'component_id'], where:{component_id: conversation[0].component_id}};
+
+          component.find(component_query).exec(function (err, record) {
+
+            if(record[0].component_id == 1){//stopsentence case
+              return res.json({
+                answer:conversation[0].answer,
+                component_id:1
+              });
+            }
+            else if(record[0].component_id >= 2 ){//recommend case
+              recommendSpot(conversation[0]);
+            }
+            else{//no match case
+              logRecord(end_component);
+              return api_res(res, err_msg);
+            }
+
+          });//end component find
+
+        });//end log find
+
+      });//end join room
 
     }//end function
 
@@ -366,6 +466,25 @@ module.exports = {
     promise
       .then(matchingComponent)
       .catch(onRejected)
+
+  },//end action
+
+  /*
+  * feature: find recommend component(we set recommend id to 2)
+  * */
+  RecommendComponent: function (req, res) {
+
+    if(req.method == "GET"){
+
+      var log_query = {select: ['question'], where: {component_id: 2}};
+
+      conversation.find(log_query,function (err, records) {
+
+        return res.json({records: records});
+
+      });
+
+    }
 
   }//end action
 

@@ -5,6 +5,13 @@
  * @help        :: See http://sailsjs.org/#!/documentation/concepts/Controllers
  */
 
+var Promise = require('promise'),
+  promise = Promise.resolve();
+
+function onRejected(err) {
+  console.log(err);
+}
+
 module.exports = {
 	index: function (req, res) {
 		return res.send("Hi there!");
@@ -12,52 +19,52 @@ module.exports = {
 
   Login : function (req,res){
 
+	  res.locals.layout = 'login_layout';
     return res.view();
 
   },
   //this action is for make login process
   LoginProcess: function (req,res){
 
+    if(req.method == "GET") {
+
       //get post data from view
-      var username_view = req.param('username');
-      var password_view = req.param('password');
+      var username_view = req.param('username'),
+        password_view = req.param('password'),
+        user_query = {
+          select: ['user_id'],
+          where: {
+            or: [
+              {username: username_view},
+              {password: password_view}
+            ]
+          }
+        };
 
-      //callback: get DB data
-      function receive_data(){
+      function passport() {
+        //login check
+        User.find(user_query).exec(function find(err, found) {
 
-        console.log(username_view);
-        console.log(password_view);
+          if (found.length == 0) {//login failed
+            return res.json({user_id: "not found"});
+          }
+          else if (found.length > 0) {
+            return res.json({user_id: found[0].user_id});
+          }
+          else {
+            return res.json({user_id: "error"});
+          }
 
-      }//end function callback
-
-      function redirect(){
-
+        });//end find
       }
 
-      //login check
-      User.find({}).exec(function find(err, found){
-
-        for(var i=0 ; i< found.length ; i++) { //loop for many record
-
-          //put mySQL data record to value
-          var data_result = receive_data();
-
-          // if username and password from view are the same in mySQL
-          if(username_view == found[i].username && password_view == found[i].password ) {
-            console.log("Login Complete");
-            return res.redirect('/Spot/Home');
-          }
-          else{
-            console.log("Login Failed");
-            //just do noting
-          }//end else
-
-        }//end for loop
-
-        //redirect();
-        //return res.redirect('User/Login');
-        return res.view();
-      });//end exec
+      promise
+        .then(passport)
+        .catch(onRejected)
+    }
+    else{
+      return res.json({user_id: "error"});
+    }
 
   },
 
