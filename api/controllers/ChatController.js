@@ -12,7 +12,8 @@
  */
 
 var request = require('request'),
-  Promise = require('promise');
+  Promise = require('promise'),
+  async = require('async');
 
 promise = Promise.resolve();
 
@@ -29,12 +30,33 @@ function api_res(res,api_res) {
 }//end function
 
 function onRejected(err) {
-  console.log(err);
+  console.log("promise catch",err);
 }
 
 module.exports = {
 
   Debug: function (req,res) {
+
+    function taskA(callback) {
+      log.find().limit(3).exec(function (err, record) {
+        callback(null, record);
+      });
+    }
+    function taskB(arg1, callback) {
+      console.log("taskB");
+      console.log(arg1);
+      // arg1 now equals 'one' and arg2 now equals 'two'
+      callback(null, 'done');
+    }
+
+    async.waterfall([
+      taskA,
+      taskB
+    ], function (err, result) {
+      // result now equals 'done'
+    });
+
+    return res.json({debug:"Debug"});
 
   },
 
@@ -49,7 +71,6 @@ module.exports = {
 
       function taskA() {
         component.find(log_query).exec(function (err, record) {
-          //console.log("return record", record);
           return res.json({component: record});
         })
       }
@@ -154,7 +175,11 @@ module.exports = {
       start_component = 2,
       end_component = 3,
       yes_component = 4,
-      no_component = 5;
+      no_component = 5,
+      short_conversation = 1,
+      start_conversation = 2,
+      middle_conversation = 3,
+      end_conversation = 4;
 
     if(msg == null){
       return api_res(res, "no msg")
@@ -164,18 +189,17 @@ module.exports = {
     }
 
     /*
-    * feature: calculate weight of spot by use 2 matrix
+    * feature: spot recommendation system
     * parameter:
-    *   1.) array[10] -> matrix of label score
+    *   1.) array ->  user's input conversation detail
+    *   2.) integer -> conversation's component id
     * */
-    function labelRecommend(){
+    function labelRecommend(label_score, component_id){
 
       var similarity = require( 'compute-cosine-similarity' );
 
       //this is [a,b]
-      var label_name = JSON.parse(req.param('label_name')),
-        label_score = JSON.parse(req.param('label_score')),
-        query = "SELECT DISTINCT article.label_id, article.spot_id, label.label_score, COUNT(*) AS 'Num' \n" +
+      var query = "SELECT DISTINCT article.label_id, article.spot_id, label.label_score, COUNT(*) AS 'Num' \n" +
           "FROM (SELECT * FROM label ORDER BY label.label_score DESC LIMIT 10) label \n" +
           "INNER JOIN article \n" +
           "ON label.label_id = article.label_id \n" +
@@ -184,9 +208,11 @@ module.exports = {
 
       var spot_label_matrix = [],
         spot_label_matrix_counter = 0,
-        top_label_query = {select:['label_id']},
+        top_label_query = {select:['label_id', 'label_name']},
         top_label_query_limit = 10,
-        top_label_query_sort = "label_score DESC";
+        top_label_query_sort = "label_score DESC",
+        top_label_name = [];
+
 
       /*
        * feature: calculate between personal data and DB's data
@@ -228,6 +254,41 @@ module.exports = {
       }
 
       /*
+       * feature: use for show name of any id and what it calculate
+       * parameter:
+       *   1.) integer -> label_id,
+       *   2.) integer -> spot_id,
+       *   3.) integer -> label x spot frequency
+       * */
+      function debugResult(label_id, spot_id, frequency) {
+
+        var spot_query = {select:['spot_name'], spot_id: spot_id},
+          label_query = {select:['label_name'], label_id: label_id},
+          debug_result = [];
+
+        spot.find(spot_query, function (err, spot) {
+          label.find(label_query, function (err2, label) {
+
+            if(err2){console.log(err2);}
+
+            if(err){console.log(err);}
+            else{
+
+              debug_result.push({
+                spot_name: spot[0].spot_name,
+                match_label:label[0].label_name,
+                match_label_frequency: frequency
+              });
+
+              console.log(debug_result);
+            }
+
+          });
+        });
+
+      }//end function
+
+      /*
        * feature: add matrix to return array
        * parameter:
        *   1.) integer -> spot id
@@ -250,7 +311,7 @@ module.exports = {
             //increase matrix
             frequency_matrix[label_index] = frequency;
 
-            debugResult(top_label[i], spot_id, frequency);
+            //debugResult(top_label[i], spot_id, frequency);
 
           }
 
@@ -272,6 +333,7 @@ module.exports = {
 
         for(var i = 0; i<records.length;i++) {
           top_label[i] = records[i].label_id;
+          top_label_name[i] = records[i].label_name;
         }
 
         console.log(top_label);
@@ -282,128 +344,237 @@ module.exports = {
         //make matrix
         label.query(query, function (err, records) {
 
-          if(err){console.log(err)}
+          if (err) {
+            console.log(err)
+          }
           else {
 
-            for(var i=0; i<records.length; i++) {
-
+            for (var i = 0; i < records.length; i++) {
               addMatrix(records[i].spot_id, records[i].label_id, records[i].Num, top_label);
-
             }
 
             algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
-            //logRecords(spot_label_matrix, algorithm_result, top_label);
 
-            //console.log(spot_label_matrix);
+            
 
-          }
+          }//end else
 
         });//end label query
 
+
+
       });//end label find
 
-    }//end function
+    }//end label recommend function
+
 
     /*
     * feature: make conversation for recommend spot of chat-bot
     * parameter: array -> set of answer
     * return: string -> conversations
     * */
-    function recommendSpot(conversation) {
+    function makeConversation(conversation) {
 
-      console.log("input parameter: ", conversation);
+      //console.log("input parameter: ", conversation);
 
       var log_query = {
-        select:[
-          'log_id',
-          'component_id',
-          'message'],
-        where:{
-          or :[
-            {component_id:start_component},
-            {component_id:end_component},
-            {component_id:yes_component},
-            {component_id:no_component}
-          ]
-        }
-      },
-        new_log_query = [{
-          component_id: end_component,
-          message:"Error"
-        }],
-        index_end_component;
-
+          select:[
+            'log_id',
+            'component_id',
+            'message'],
+          where:{
+            or :[
+              {component_id:start_component},
+              {component_id:end_component},
+              {component_id:yes_component},
+              {component_id:no_component}
+            ]
+          }
+        },
+        index_end_component,
+        label_score = [0,0,0,0,0,0,0,0,0,0],
+        current_conversation = [],
+        current_conversation_counter = 0,
+        introduce_con = "Ok, I will ask many of question.  And you should answer something like yes or no."+
+          "If you want to stop recommend please type “end",
+        end_con = "OK, your main window will redirect to A square valley content’s page. If you have some"+
+          "question call me by type something. Enjoy",
+        state_threshold = 6;
 
       log.find(log_query).sort('log_id ASC').exec(function (err, record) {
-        //if start is last index add end
-        //note: this method is not good. May be we should change component number to
-        //end component instead add a new log. Because log should insert by only
-        //user's input.
-        //note2: in debug's log it's not show newest record that add by this function
+
         /*
-        function clearConversation() {
-          if (record[record.length - 1].component_id == start_component) {
-            log.create(new_log_query).exec(function (err, record) {
-            });
-          }
-        }
-        */
+        * feature: reference log for make user's matrix
+        * */
+        function makeUserMatrix(current_conversation, conversation_step) {
 
-        console.log("debug: \n",record);
+          var label_score_counter = 0;
 
-        function countProcess() {
+          for(var i=0; i< conversation_step; i++){
 
-          //find end component
-          for (var i = record.length; i >= 0; i--) {
+            if(current_conversation[i].component_id >= 4) {
 
-            if (record[i-1].component_id == end_component) {
+              if (current_conversation[i].component_id == 4) {//yes
+                label_score[label_score_counter] = 1;
+                label_score_counter++;
+              }
+              else if (current_conversation[i].component_id == 5) {//no
+                label_score[label_score_counter] = 0;
+                label_score_counter++;
+              }
 
-              //console.log("log id of end component: ", record[i-1].log_id);
-              index_end_component = i-1;
-              break;
-
-            }
+            }//end if
 
           }//end loop
 
-          console.log("index of end component: ", index_end_component);
+          console.log("user's label: ",label_score);
+          return label_score;
 
-          //after last end component
-          for (var l = index_end_component; l < record.length; l++) {
+        }//end fnc
 
-            console.log("conversation: ",record[l]);
+        /*
+        * feature: bot will ask label's question to user.
+        * */
+        function botAskQuestion(current_conversation , conversation_step) {
+
+          var top_label_query = {select:['label_id', 'label_name']},
+            top_label_query_limit = 10,
+            top_label_query_sort = "label_score DESC";
+
+          label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
+
+            if(err){console.log(err)}
+            //for first time that bot ask user.There no need to make user vector
+            if(conversation_step == 2){
+              return res.json({
+                answer: "Do you interested in "+records[0].label_name+"?"
+              });
+            }
+            else {
+              makeUserMatrix(current_conversation, conversation_step);
+              return res.json({
+                answer: "Do you interested in "+records[conversation_step+2].label_name+"?"
+              });
+            }
+
+          });//end async model find
+        }//end func
+
+        /*
+        * feature: bot will reference user's label and recommend spot to user
+        * */
+        function botAnswerQuestion(current_conversation , conversation_step) {
+
+
+
+        }//end fnc
+
+        /*
+         * feature: make answer for question from user
+         * */
+        function conversationYesNo(current_conversation, component_id) {
+
+          //console.log("conversation length: ", current_conversation.length);
+          //console.log("threshold: ", state_threshold);
+
+          if(current_conversation.length >= state_threshold){//answer question
+            botAnswerQuestion(current_conversation, current_conversation.length);
+          }
+          //note: even length and threshold is ==, It return false. Bug?
+          else if(current_conversation.length < state_threshold) {//ask question
+            console.log("ask question");
+            botAskQuestion(current_conversation, current_conversation.length);
+          }
+          else {
+            return res.json({
+              answer:"Error: Yes or No case",
+              component_id: component_id
+            });
           }
 
+        }//end fnc
+
+        //find end component
+        for (var i = record.length; i >= 0; i--) {
+
+          if (record[i-1].component_id == end_component) {
+
+            //console.log("log id of end component: ", record[i-1].log_id);
+            index_end_component = i-1;
+            break;
+
+          }
+
+        }//end loop
+
+        //find after last end component
+        for (var l = index_end_component; l < record.length; l++) {
+          current_conversation[current_conversation_counter] = record[l];
+          current_conversation_counter++;
+        }
+
+        console.log(current_conversation);
+
+        //conversation's answer decide
+        if(current_conversation.length == 2 && conversation.component_id == 2){//when start
+
+          botAskQuestion(current_conversation, conversation.component_id);
 
         }
-        promise
-          //.then(clearConversation)
-          .then(countProcess)
-          .catch(onRejected);
+        else if(current_conversation.length == 1  && conversation.component_id == 3){//when end
 
+          return res.json({
+            answer:"recommend end case",
+            component_id: conversation.component_id
+          });
 
+        }
+        else if(current_conversation.length > 2 && conversation.component_id > 3){//yes or no case
+
+          conversationYesNo(current_conversation, conversation.component_id);
+
+        }
+        else{//error case
+
+          return res.json({
+            answer:"recommend error case",
+            component_id: conversation.component_id
+          });
+        }
 
       });//end find
 
-      return res.json({
-        answer:"recommend case",
-        component_id: conversation.component_id
-      });
+    }//end func
 
-    }
 
     /*
-    * feature: record log
+    * feature: make log of conversation
+    * parameter
+    *   1.) integer -> the state of conversation
     * */
-    function logRecord(component_id) {
+    function makeLog(state_id, conversation_id, callback) {
 
-      var log_query = [{
-        component_id: component_id,
-        user_id: user_id,
-        message: msg
-      }];
+      console.log("logs are made");
 
-      log.create(log_query).exec(function (err, record) {});
+        var log_query = [{
+          component_id: conversation_id,
+          user_id: user_id,
+          state_id: state_id,
+          message: msg
+        }];
+
+        log.create(log_query).exec(function (err, record) {
+          if(err){console.log(err);}
+          else{
+            console.log(record);
+            callback(null, record);
+          }
+        });
+
+    }//end fnc
+
+    function updateLog() {
+
     }
 
     /*
@@ -426,42 +597,53 @@ module.exports = {
 
         conversation.find(conversation_query).exec(function find(err, conversation) {
 
-          //make log
-          if(conversation.length != 0) {//match
-            logRecord(conversation[0].component_id);
-          }
-
+          //make log or return error
           if(conversation.length == 0){return api_res(res, err_msg);}
 
-          var component_query = {select:['component_name', 'component_id'], where:{component_id: conversation[0].component_id}};
+          function selectComponent(arg1, callback) {
 
-          component.find(component_query).exec(function (err, record) {
+            var component_query = {
+              select: ['component_name', 'component_id'],
+              where: {component_id: conversation[0].component_id}
+            };
 
-            if(record[0].component_id == 1){//stopsentence case
-              return res.json({
-                answer:conversation[0].answer,
-                component_id:1
-              });
-            }
-            else if(record[0].component_id >= 2 ){//recommend case
-              recommendSpot(conversation[0]);
-            }
-            else{//no match case
-              logRecord(end_component);
-              return api_res(res, err_msg);
-            }
+            component.find(component_query).exec(function (err, record) {
 
-          });//end component find
+              if (record[0].component_id == 1) {//stopsentence case
+                return res.json({
+                  answer: conversation[0].answer,
+                  component_id: 1
+                });
+              }
+              else if (record[0].component_id >= 2) {//recommend case
+                makeConversation(conversation[0]);
+              }
+              else {//no match case
+                makeLog(end_component, conversation[0].component_id);
+                return api_res(res, err_msg);
+              }
 
-        });//end log find
+            });//end component find
+
+          }
+
+          //make sync log must make before component selected
+          async.waterfall([
+            async.apply(makeLog, short_conversation, conversation[0].component_id),
+            selectComponent
+          ], function (err, result) {
+
+          });
+
+        });//end conversation find
 
       });//end join room
 
     }//end function
 
     //debug check message from view
-    console.log("Debug data from view: "+msg);
-    console.log("Debug check status of feedback: "+feedback_switch);
+    //console.log("Debug data from view: "+msg);
+    //console.log("Debug check status of feedback: "+feedback_switch);
 
     promise
       .then(matchingComponent)

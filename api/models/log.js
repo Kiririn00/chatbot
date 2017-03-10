@@ -14,6 +14,10 @@ module.exports = {
       type: 'integer',
       size: 100
     },
+    state_id:{
+      type: 'integer',
+      size: 100
+    },
     component_id: {
       type: 'integer',
       size: 100

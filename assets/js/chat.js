@@ -50,13 +50,22 @@ function postLog() {
 /*
 * feature: reset the web storage
 * */
-function resetProgress() {
+function resetProgress(address, fn) {
 
-  $('button#reset_progress').click(function () {
-    alert("reset progressed");
-    sessionStorage.clear();
-  });
+    $('button#reset_progress').click(function () {
+      //alert("reset progressed");
+      sessionStorage.clear();
+
+      console.log(fn);
+      fn("Pass value");
+
+    });
+
 }
+
+resetProgress("address", function (value) {
+  console.log(value);
+});
 
 /*
  * feature: confirm conversation progress
@@ -131,6 +140,7 @@ function doConversation() {
   });//end socket.on connect
 
 }
+
 
 promise
   .then(resetProgress)
