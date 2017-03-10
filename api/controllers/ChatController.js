@@ -194,7 +194,7 @@ module.exports = {
     *   1.) array ->  user's input conversation detail
     *   2.) integer -> conversation's component id
     * */
-    function labelRecommend(label_score, component_id){
+    function labelRecommend(label_score){
 
       var similarity = require( 'compute-cosine-similarity' );
 
@@ -355,7 +355,14 @@ module.exports = {
 
             algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
 
-            
+            console.log("algorithm_result: "+ algorithm_result[0].spot_id);
+
+            spot.find({select: ['spot_name'], where: {spot_id: algorithm_result[0].spot_id}}).exec(function (err, spot_db) {
+
+              return res.json({
+                answer: "Then I recommend: "+spot_db[0].spot_name
+              });
+            });
 
           }//end else
 
@@ -465,7 +472,9 @@ module.exports = {
         * */
         function botAnswerQuestion(current_conversation , conversation_step) {
 
-
+          //send the user vec tor recommendation system.
+          var label_score = makeUserMatrix(current_conversation, conversation_step);
+          labelRecommend(label_score);
 
         }//end fnc
 
