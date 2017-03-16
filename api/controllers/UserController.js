@@ -45,6 +45,9 @@ module.exports = {
         //login check
         User.find(user_query).exec(function find(err, found) {
 
+          if(err){console.log(err);}
+          console.log(found);
+
           if (found.length == 0) {//login failed
             return res.json({user_id: "not found"});
           }
@@ -63,7 +66,7 @@ module.exports = {
         .catch(onRejected)
     }
     else{
-      return res.json({user_id: "error"});
+      return res.json({user_id: "error not a GET method"});
     }
 
   },

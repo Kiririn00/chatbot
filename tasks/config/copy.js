@@ -28,7 +28,13 @@ module.exports = function(grunt) {
         cwd: './assets',
         src: ['**/*.!(coffee|less)'],
         dest: '.tmp/public'
-      }]
+      },
+        {
+          expand: true,
+          cwd: './node_modules/matrix-similar-cosine/lib',
+          src: ['index.js'],
+          dest: '.tmp/public/lib'
+        }]
     },
     build: {
       files: [{

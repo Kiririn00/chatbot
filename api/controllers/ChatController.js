@@ -33,6 +33,28 @@ function onRejected(err) {
   console.log("promise catch",err);
 }
 
+/*
+ * feature: sort object array
+ * parameter:
+ *   1.) array -> array that want to sort
+ *   2.) string -> name of key of object array that want to sort.
+ * return: array
+ *   1.) sorted's array
+ * */
+function sortObjectArray(object_array, sort_key) {
+
+  object_array.sort(function (a,b) {
+
+    if(a[sort_key] < b[sort_key]){ return -1; }
+    if(a[sort_key] > b[sort_key]){ return 1; }
+    else{ return 0;}
+
+  });
+
+  return object_array;
+
+}
+
 module.exports = {
 
   Debug: function (req,res) {
@@ -196,7 +218,8 @@ module.exports = {
     * */
     function labelRecommend(label_score){
 
-      var similarity = require( 'compute-cosine-similarity' );
+      var similarity = require( 'compute-cosine-similarity' ),
+        sortBy = require('sort-array');
 
       //this is [a,b]
       var query = "SELECT DISTINCT article.label_id, article.spot_id, label.label_score, COUNT(*) AS 'Num' \n" +
@@ -246,6 +269,21 @@ module.exports = {
         }//end function
 
         result = similarCosineCase();
+
+        result.sort(function (a,b) {
+
+          if (a.cosine_degree < b.cosine_degree ) {
+            return -1;
+          }
+          if (a.cosine_degree > b.cosine_degree) {
+            return 1;
+          }
+          else{
+            return 0;
+          }
+          // a must be eq
+
+        });
 
         console.log(result);
 
@@ -405,13 +443,17 @@ module.exports = {
         introduce_con = "Ok, I will ask many of question.  And you should answer something like yes or no."+
           "If you want to stop recommend please type “end",
         end_con = "OK, your main window will redirect to A square valley content’s page. If you have some"+
-          "question call me by type something. Enjoy",
-        state_threshold = 6;
+          "question call me by type something. Enjoy";
 
       log.find(log_query).sort('log_id ASC').exec(function (err, record) {
 
         /*
-        * feature: reference log for make user's matrix
+        * feature: reference log for make user's matrix by add integer to array
+        * parameter:
+        *   1.) array -> presently set of the conversation.
+        *   2.) integer -> length of current conversation
+        * res return:
+        *   array -> bot answer
         * */
         function makeUserMatrix(current_conversation, conversation_step) {
 
@@ -478,10 +520,31 @@ module.exports = {
 
         }//end fnc
 
+        function botFeedbackQuestion() {
+
+        }
+
+
         /*
          * feature: make answer for question from user
+         * parameter:
+         *  1.) array -> presently set of the conversation.
+         *  2.) integer -> component id of user's input
+         * call func:
+         *  1.) botAnswerQuestion
+         *  2.) botAskQuestion
+         * res return
+         *   array:
+         *     1.) string -> error text
+         *     2.) integer -> user's input component
+         * logic:
+         *  1.) set threshold of question and answer
+         *  2.) before threshold, bot will make question
+         *  3.) after overcome threshold, bot will make answer
          * */
         function conversationYesNo(current_conversation, component_id) {
+
+          var state_threshold = 6;
 
           //console.log("conversation length: ", current_conversation.length);
           //console.log("threshold: ", state_threshold);
@@ -563,7 +626,7 @@ module.exports = {
     * */
     function makeLog(state_id, conversation_id, callback) {
 
-      console.log("logs are made");
+      //console.log("logs are made");
 
         var log_query = [{
           component_id: conversation_id,
@@ -581,10 +644,6 @@ module.exports = {
         });
 
     }//end fnc
-
-    function updateLog() {
-
-    }
 
     /*
     * feature: check input from view that what is component of that sentence or conversation
@@ -634,7 +693,7 @@ module.exports = {
 
             });//end component find
 
-          }
+          }//end component find
 
           //make sync log must make before component selected
           async.waterfall([
