@@ -214,9 +214,8 @@ module.exports = {
     * feature: spot recommendation system
     * parameter:
     *   1.) array ->  user's input conversation detail
-    *   2.) integer -> conversation's component id
     * */
-    function labelRecommend(label_score){
+    function labelRecommend(label_score, current_conversation){
 
       var similarity = require( 'compute-cosine-similarity' ),
         sortBy = require('sort-array');
@@ -292,41 +291,6 @@ module.exports = {
       }
 
       /*
-       * feature: use for show name of any id and what it calculate
-       * parameter:
-       *   1.) integer -> label_id,
-       *   2.) integer -> spot_id,
-       *   3.) integer -> label x spot frequency
-       * */
-      function debugResult(label_id, spot_id, frequency) {
-
-        var spot_query = {select:['spot_name'], spot_id: spot_id},
-          label_query = {select:['label_name'], label_id: label_id},
-          debug_result = [];
-
-        spot.find(spot_query, function (err, spot) {
-          label.find(label_query, function (err2, label) {
-
-            if(err2){console.log(err2);}
-
-            if(err){console.log(err);}
-            else{
-
-              debug_result.push({
-                spot_name: spot[0].spot_name,
-                match_label:label[0].label_name,
-                match_label_frequency: frequency
-              });
-
-              console.log(debug_result);
-            }
-
-          });
-        });
-
-      }//end function
-
-      /*
        * feature: add matrix to return array
        * parameter:
        *   1.) integer -> spot id
@@ -397,21 +361,151 @@ module.exports = {
 
             spot.find({select: ['spot_name'], where: {spot_id: algorithm_result[0].spot_id}}).exec(function (err, spot_db) {
 
-              return res.json({
-                answer: "Then I recommend: "+spot_db[0].spot_name
-              });
+              conversationYesNo(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id , current_conversation);
+
             });
 
           }//end else
 
         });//end label query
 
-
-
       });//end label find
 
     }//end label recommend function
 
+    /*
+     * feature: reference log for make user's matrix by add integer to array
+     * parameter:
+     *   1.) array -> presently set of the conversation.
+     *   2.) integer -> length of current conversation
+     * res return:
+     *   array -> bot answer
+     * */
+    function makeUserMatrix(current_conversation, conversation_step) {
+
+      var label_score_counter = 0,
+        label_score = [0,0,0,0,0,0,0,0,0,0],
+        positive_answer = 1,
+        negative_answer = -1;
+
+      for(var i=0; i< conversation_step; i++){
+
+        if(current_conversation[i].component_id >= 4) {
+
+          if (current_conversation[i].component_id == 4) {//yes
+            label_score[label_score_counter] = positive_answer;
+            label_score_counter++;
+          }
+          else if (current_conversation[i].component_id == 5) {//no
+            label_score[label_score_counter] = negative_answer;
+            label_score_counter++;
+          }
+
+        }//end if
+
+      }//end loop
+
+      console.log("user's label: ",label_score);
+      return label_score;
+
+    }//end fnc
+
+    /*
+    * feature: count number of question(yes,no) form parameter
+    * */
+    function countQuestion(current_conversation, conversation_step) {
+      var question_num = 0;
+
+      for(var i =0; i<conversation_step; i++){
+        if(current_conversation[i].component_id >= 4){
+          question_num++;
+        }
+      }
+      return question_num;
+    }//end func
+
+    /*
+     * feature: bot will ask label's question to user.
+     * */
+    function botAskQuestion(current_conversation , conversation_step) {
+
+      var top_label_query = {select:['label_id', 'label_name']},
+        top_label_query_limit = 10,
+        top_label_query_sort = "label_score DESC",
+        question_num = countQuestion(current_conversation, conversation_step);
+
+      label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
+
+        if(err){console.log(err)}
+        //for first time that bot ask user.There no need to make user vector
+        if(conversation_step == 2){
+          return res.json({
+            answer: "Do you interested in "+records[0].label_name+"?"
+          });
+        }
+        else {
+          makeUserMatrix(current_conversation, conversation_step);
+          return res.json({
+            answer: "Do you interested in "+records[question_num].label_name+"?"
+          });
+        }
+
+      });//end async model find
+
+    }//end func
+
+    /*
+    * feature: save user's feedback
+    * */
+    function userFeedback(current_conversation , conversation_step, spot_id) {
+
+      var feedback_query = {where: {spot_id: spot_id}},
+        user_matrix;
+
+      user_matrix = makeUserMatrix(current_conversation, conversation_step);
+
+      feedback.find(feedback_query);
+
+    }
+
+    /*
+     * feature: make answer or question from user
+     * parameter:
+     *  1.) integer -> cosine degree from spot weight calculate func
+     *  2.) string ->
+     * call func:
+     *  1.) botAnswerQuestion
+     * res return
+     *   array:
+     *     1.) string -> error text
+     *     2.) integer -> user's input component
+     * logic:
+     *  1.) set threshold of question and answer
+     *  2.) before threshold, bot will make question
+     *  3.) after overcome threshold, bot will make answer
+     * */
+    function conversationYesNo(cosine_degree, spot_name, spot_id ,current_conversation) {
+
+      //note: we should make some algorithm for decide threshold
+      var state_threshold = 55;
+
+      if(cosine_degree >= state_threshold){//answer question
+        //userFeedback(current_conversation, current_conversation.length, spot_id);
+        return res.json({
+          answer: "Then I recommend: "+spot_name
+        });
+      }
+      //note: even length and threshold is ==, It return false. Bug?
+      else if(cosine_degree < state_threshold) {//ask question
+        botAskQuestion(current_conversation, current_conversation.length);
+      }
+      else {
+        return res.json({
+          answer:"Error: Yes or No case"
+        });
+      }
+
+    }//end fnc
 
     /*
     * feature: make conversation for recommend spot of chat-bot
@@ -419,7 +513,6 @@ module.exports = {
     * return: string -> conversations
     * */
     function makeConversation(conversation) {
-
       //console.log("input parameter: ", conversation);
 
       var log_query = {
@@ -437,7 +530,7 @@ module.exports = {
           }
         },
         index_end_component,
-        label_score = [0,0,0,0,0,0,0,0,0,0],
+        user_label_score,
         current_conversation = [],
         current_conversation_counter = 0,
         introduce_con = "Ok, I will ask many of question.  And you should answer something like yes or no."+
@@ -447,124 +540,6 @@ module.exports = {
 
       log.find(log_query).sort('log_id ASC').exec(function (err, record) {
 
-        /*
-        * feature: reference log for make user's matrix by add integer to array
-        * parameter:
-        *   1.) array -> presently set of the conversation.
-        *   2.) integer -> length of current conversation
-        * res return:
-        *   array -> bot answer
-        * */
-        function makeUserMatrix(current_conversation, conversation_step) {
-
-          var label_score_counter = 0;
-
-          for(var i=0; i< conversation_step; i++){
-
-            if(current_conversation[i].component_id >= 4) {
-
-              if (current_conversation[i].component_id == 4) {//yes
-                label_score[label_score_counter] = 1;
-                label_score_counter++;
-              }
-              else if (current_conversation[i].component_id == 5) {//no
-                label_score[label_score_counter] = 0;
-                label_score_counter++;
-              }
-
-            }//end if
-
-          }//end loop
-
-          console.log("user's label: ",label_score);
-          return label_score;
-
-        }//end fnc
-
-        /*
-        * feature: bot will ask label's question to user.
-        * */
-        function botAskQuestion(current_conversation , conversation_step) {
-
-          var top_label_query = {select:['label_id', 'label_name']},
-            top_label_query_limit = 10,
-            top_label_query_sort = "label_score DESC";
-
-          label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
-
-            if(err){console.log(err)}
-            //for first time that bot ask user.There no need to make user vector
-            if(conversation_step == 2){
-              return res.json({
-                answer: "Do you interested in "+records[0].label_name+"?"
-              });
-            }
-            else {
-              makeUserMatrix(current_conversation, conversation_step);
-              return res.json({
-                answer: "Do you interested in "+records[conversation_step+2].label_name+"?"
-              });
-            }
-
-          });//end async model find
-        }//end func
-
-        /*
-        * feature: bot will reference user's label and recommend spot to user
-        * */
-        function botAnswerQuestion(current_conversation , conversation_step) {
-
-          //send the user vec tor recommendation system.
-          var label_score = makeUserMatrix(current_conversation, conversation_step);
-          labelRecommend(label_score);
-
-        }//end fnc
-
-        function botFeedbackQuestion() {
-
-        }
-
-
-        /*
-         * feature: make answer for question from user
-         * parameter:
-         *  1.) array -> presently set of the conversation.
-         *  2.) integer -> component id of user's input
-         * call func:
-         *  1.) botAnswerQuestion
-         *  2.) botAskQuestion
-         * res return
-         *   array:
-         *     1.) string -> error text
-         *     2.) integer -> user's input component
-         * logic:
-         *  1.) set threshold of question and answer
-         *  2.) before threshold, bot will make question
-         *  3.) after overcome threshold, bot will make answer
-         * */
-        function conversationYesNo(current_conversation, component_id) {
-
-          var state_threshold = 6;
-
-          //console.log("conversation length: ", current_conversation.length);
-          //console.log("threshold: ", state_threshold);
-
-          if(current_conversation.length >= state_threshold){//answer question
-            botAnswerQuestion(current_conversation, current_conversation.length);
-          }
-          //note: even length and threshold is ==, It return false. Bug?
-          else if(current_conversation.length < state_threshold) {//ask question
-            console.log("ask question");
-            botAskQuestion(current_conversation, current_conversation.length);
-          }
-          else {
-            return res.json({
-              answer:"Error: Yes or No case",
-              component_id: component_id
-            });
-          }
-
-        }//end fnc
 
         //find end component
         for (var i = record.length; i >= 0; i--) {
@@ -603,7 +578,9 @@ module.exports = {
         }
         else if(current_conversation.length > 2 && conversation.component_id > 3){//yes or no case
 
-          conversationYesNo(current_conversation, conversation.component_id);
+          user_label_score = makeUserMatrix(current_conversation, current_conversation.length);
+          labelRecommend(user_label_score, current_conversation);
+          //conversationYesNo(current_conversation);
 
         }
         else{//error case

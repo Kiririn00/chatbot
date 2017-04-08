@@ -397,49 +397,6 @@ module.exports = {
           top_label_query_sort = "label_score DESC";
 
       /*
-      * feature: record log from algorithm result in excel
-      * parameter:
-      *   1.) array -> matrix and spot'id
-      *   2.) array -> cosine degree and spot's id
-      *   3.) array -> spot and label's name
-      * */
-      function logRecords(matrix, cosine, top_label) {
-
-        var label_num = top_label.length,
-          result_num = matrix.length;
-
-        var ws = {};
-        var range = {s:{c:0, r:0}, e:{c:10000, r:10000}};
-
-        for(var R=0; R<label_num; R++){
-
-          var cell_ref = XLSX.utils.encode_cell({c:0, r:R});//cell's target
-          var cell = {v:top_label[R]};//cell value
-          ws[cell_ref] = cell;
-          cell.v = top_label[R];
-
-        }
-
-        function workBook() {
-          this.SheetNames = [];
-          this.Sheets = {};
-        }
-
-        var wb = new workBook();
-        var ws_name = "test_sheet";
-
-        wb.SheetNames.push(ws_name);
-        wb.Sheets[ws_name] = ws;
-        ws['!ref'] = XLSX.utils.encode_range(range);
-
-        XLSX.writeFile(wb, 'XML/test.xlsx');
-
-        console.log("created excel", wb);
-
-
-      }
-
-      /*
       * feature: use for show name of any id and what it calculate
       * parameter:
       *   1.) integer -> label_id,
