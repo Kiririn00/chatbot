@@ -201,6 +201,8 @@ module.exports = {
       short_conversation = 1,
       end_recommend_component = 3;
 
+    console.log("feedback status: ", feedback_switch);
+
     if(msg == null){
       return api_res(res, "no msg")
     }
@@ -502,6 +504,7 @@ module.exports = {
 
     }
 
+
     /*
      * feature: make answer or question from user
      * parameter:
@@ -527,7 +530,8 @@ module.exports = {
         //userFeedback(current_conversation, current_conversation.length, spot_id);
         makeLog(end_conversation, end_recommend_component);
         return res.json({
-          answer: "Then I recommend: "+spot_name+"\n End the conversation."
+          answer: "Then I recommend: "+spot_name,
+          feedback_question: "Like or Dislike?"
         });
       }
       //note: even length and threshold is ==, It return false. Bug?

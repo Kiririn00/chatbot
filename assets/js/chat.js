@@ -109,12 +109,15 @@ function doConversation() {
       var $text = $('#chat-textarea'),
         $send_message_form = $(this),
         progress_counter = 0,
+        feedback_switch = $send_message_form.find('input#activate-feedback-component:checked').val(),
         msg = $text.val(),
         get_data = {
           msg: msg,
-          feedback_switch: 0,
+          feedback_switch: feedback_switch,
           user_id: $send_message_form.find('input#user_id').val()
         };
+
+        console.log(feedback_switch);
 
       $text.val('');//clear textarea
 
@@ -133,7 +136,21 @@ function doConversation() {
           '<p id="process" class="me"> ' + data.answer + '</p>'
         );
 
+        if(data.feedback_question != null){// if bot ask for feedback
+
+          $send_message_form.find('input#activate-feedback-component').prop('checked', true);
+
+          $(".chat").append(
+            //text is detail that bot response
+            '<p id="process" class="me"> ' + data.feedback_question + '</p>'
+          );
+        }
+
       });//end io get
+
+      if (feedback_switch == 1){//when feedback checkbox is checked.
+        $send_message_form.find('input#activate-feedback-component').prop('checked', false);
+      }
 
     });//end check submit event
 
