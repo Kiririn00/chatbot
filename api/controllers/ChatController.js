@@ -190,6 +190,7 @@ module.exports = {
       component_name,
       msg = req.param('msg'),
       feedback_switch = req.param('feedback_switch'),
+      feedback_switch_active = 1,
       user_id = req.param('user_id'),
       log_query = {select:['component_id', 'question', 'answer'], where: {question: msg}},
       done_conversation = "done recommendation",
@@ -201,7 +202,6 @@ module.exports = {
       short_conversation = 1,
       end_recommend_component = 3;
 
-    console.log("feedback status: ", feedback_switch);
 
     if(msg == null){
       return api_res(res, "no msg")
@@ -547,6 +547,16 @@ module.exports = {
     }//end fnc
 
     /*
+    * feature: reference the type of feedback and generate conversation from ref.
+    * parameter:
+    *   integer -> log id
+    *   integer -> feedback type <1:like>, <0:dislike>
+    * */
+    function recordFeedback() {
+
+    }
+
+    /*
     * feature: make conversation for recommend spot of chat-bot
     * parameter: array -> set of answer
     * return: string -> conversations
@@ -603,19 +613,26 @@ module.exports = {
 
         //conversation's answer decide
         if(current_conversation.length == 2 && conversation.component_id == 2){//when start
-
           botAskQuestion(current_conversation, conversation.component_id);
-
         }
         else if(current_conversation.length == 1  && conversation.component_id == 3){//when end
-
           return res.json({
             answer:"recommend end case",
             component_id: conversation.component_id
           });
-
         }
         else if(current_conversation.length > 2 && conversation.component_id > 3){//yes or no case
+
+          if(feedback_switch == feedback_switch_active){ //if a component is a feedback type.
+
+            if(conversation.component_id == 6){
+
+            }
+            else if(conversation.component_id == 7){
+
+            }
+
+          }//end if
 
           user_label_score = makeUserMatrix(current_conversation, current_conversation.length);
           labelRecommend(user_label_score, current_conversation);

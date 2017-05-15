@@ -11,17 +11,11 @@ module.exports = {
       primaryKey: true,
       unique: true
     },
-    user_id: {
-      type: 'integer',
-      size: 100
+    log_id: {
+      type: 'integer'
     },
-    spot_id: {
-      type: 'integer',
-      size: 100
-    },
-    score:{
-      type: 'integer',
-      size: 100
+    feedback: {
+      type: 'integer'
     }
   }
 
