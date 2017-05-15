@@ -405,6 +405,8 @@ module.exports = {
       * */
       function debugResult(label_id, spot_id, frequency) {
 
+        console.log("used debug");
+
         var spot_query = {select:['spot_name'], spot_id: spot_id},
             label_query = {select:['label_name'], label_id: label_id},
             debug_result = [];
@@ -423,7 +425,7 @@ module.exports = {
                 match_label_frequency: frequency
               });
 
-              console.log(debug_result);
+              console.log("debug: ",debug_result);
             }
 
             });

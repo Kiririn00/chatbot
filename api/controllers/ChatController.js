@@ -194,14 +194,12 @@ module.exports = {
       log_query = {select:['component_id', 'question', 'answer'], where: {question: msg}},
       done_conversation = "done recommendation",
       socket_id = sails.sockets.getId(req.socket),
-      start_component = 2,
-      end_component = 3,
-      yes_component = 4,
-      no_component = 5,
-      short_conversation = 1,
       start_conversation = 2,
-      middle_conversation = 3,
-      end_conversation = 4;
+      end_conversation = 3,
+      yes_conversation = 4,
+      no_conversation = 5,
+      short_conversation = 1,
+      end_recommend_component = 3;
 
     if(msg == null){
       return api_res(res, "no msg")
@@ -291,6 +289,41 @@ module.exports = {
       }
 
       /*
+       * feature: use for show name of any id and what it calculate
+       * parameter:
+       *   1.) integer -> label_id,
+       *   2.) integer -> spot_id,
+       *   3.) integer -> label x spot frequency
+       * */
+      function debugResult(label_id, spot_id, frequency) {
+
+        var spot_query = {select:['spot_name'], spot_id: spot_id},
+          label_query = {select:['label_name'], label_id: label_id},
+          debug_result = [];
+
+        spot.find(spot_query, function (err, spot) {
+          label.find(label_query, function (err2, label) {
+
+            if(err2){console.log(err2);}
+
+            if(err){console.log(err);}
+            else{
+
+              debug_result.push({
+                spot_name: spot[0].spot_name,
+                match_label:label[0].label_name,
+                match_label_frequency: frequency
+              });
+
+              sails.log("debug: ",debug_result);
+            }
+
+          });
+        });
+
+      }//end function
+
+      /*
        * feature: add matrix to return array
        * parameter:
        *   1.) integer -> spot id
@@ -313,6 +346,7 @@ module.exports = {
             //increase matrix
             frequency_matrix[label_index] = frequency;
 
+            //if you want to check the all data of the location uncomment this
             //debugResult(top_label[i], spot_id, frequency);
 
           }
@@ -361,7 +395,7 @@ module.exports = {
 
             spot.find({select: ['spot_name'], where: {spot_id: algorithm_result[0].spot_id}}).exec(function (err, spot_db) {
 
-              conversationYesNo(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id , current_conversation);
+              conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id , current_conversation);
 
             });
 
@@ -484,15 +518,16 @@ module.exports = {
      *  2.) before threshold, bot will make question
      *  3.) after overcome threshold, bot will make answer
      * */
-    function conversationYesNo(cosine_degree, spot_name, spot_id ,current_conversation) {
+    function conversationDecision(cosine_degree, spot_name, spot_id ,current_conversation) {
 
       //note: we should make some algorithm for decide threshold
       var state_threshold = 55;
 
       if(cosine_degree >= state_threshold){//answer question
         //userFeedback(current_conversation, current_conversation.length, spot_id);
+        makeLog(end_conversation, end_recommend_component);
         return res.json({
-          answer: "Then I recommend: "+spot_name
+          answer: "Then I recommend: "+spot_name+"\n End the conversation."
         });
       }
       //note: even length and threshold is ==, It return false. Bug?
@@ -522,14 +557,14 @@ module.exports = {
             'message'],
           where:{
             or :[
-              {component_id:start_component},
-              {component_id:end_component},
-              {component_id:yes_component},
-              {component_id:no_component}
+              {component_id:start_conversation},
+              {component_id:end_conversation},
+              {component_id:yes_conversation},
+              {component_id:no_conversation}
             ]
           }
         },
-        index_end_component,
+        index_end_conversation,
         user_label_score,
         current_conversation = [],
         current_conversation_counter = 0,
@@ -544,10 +579,10 @@ module.exports = {
         //find end component
         for (var i = record.length; i >= 0; i--) {
 
-          if (record[i-1].component_id == end_component) {
+          if (record[i-1].component_id == end_conversation) {
 
             //console.log("log id of end component: ", record[i-1].log_id);
-            index_end_component = i-1;
+            index_end_conversation = i-1;
             break;
 
           }
@@ -555,7 +590,7 @@ module.exports = {
         }//end loop
 
         //find after last end component
-        for (var l = index_end_component; l < record.length; l++) {
+        for (var l = index_end_conversation; l < record.length; l++) {
           current_conversation[current_conversation_counter] = record[l];
           current_conversation_counter++;
         }
@@ -580,7 +615,7 @@ module.exports = {
 
           user_label_score = makeUserMatrix(current_conversation, current_conversation.length);
           labelRecommend(user_label_score, current_conversation);
-          //conversationYesNo(current_conversation);
+          //conversationDecision(current_conversation);
 
         }
         else{//error case
@@ -599,7 +634,10 @@ module.exports = {
     /*
     * feature: make log of conversation
     * parameter
-    *   1.) integer -> the state of conversation
+    *   1.) integer -> the state of conversation.
+    *                 This is the process of the conversation.
+    *                 There has start,yes,no,end,etc.
+    *   2.) integer -> conversation state.
     * */
     function makeLog(state_id, conversation_id, callback) {
 
@@ -615,8 +653,13 @@ module.exports = {
         log.create(log_query).exec(function (err, record) {
           if(err){console.log(err);}
           else{
-            console.log(record);
-            callback(null, record);
+            console.log("", record);
+            if(callback == null){
+
+            }
+            else {
+              callback(null, record);
+            }
           }
         });
 
@@ -664,7 +707,7 @@ module.exports = {
                 makeConversation(conversation[0]);
               }
               else {//no match case
-                makeLog(end_component, conversation[0].component_id);
+                makeLog(end_conversation, conversation[0].component_id);
                 return api_res(res, err_msg);
               }
 

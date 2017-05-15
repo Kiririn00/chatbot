@@ -424,8 +424,10 @@ module.exports = {
     }//enf if post
   },//end function (controller action)
 
-  AddSpot : function (){
+  AddArticle : function (req, res){
 
+    res.locals.layout = 'login_layout';
+    return res.view();
   },
 
   //this is function for test form by using sails
