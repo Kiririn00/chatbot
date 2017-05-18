@@ -5,6 +5,12 @@
  */
 module.exports = {
   attributes: {
+    room_id: {
+      type: 'integer',
+      autoIncrement: true,
+      primaryKey: true,
+      unique: true
+    },
     status: {
       type: 'string',
       size: 100

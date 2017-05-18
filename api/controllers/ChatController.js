@@ -59,20 +59,25 @@ module.exports = {
 
   Debug: function (req,res) {
 
-    function taskA(callback) {
+    function taskA(arg1,arg2,callback) {
       log.find().limit(3).exec(function (err, record) {
-        callback(null, record);
+
+        console.log(arg1, arg2);
+        callback(null, 3);
       });
     }
     function taskB(arg1, callback) {
-      console.log("taskB");
+
+      console.log(arg1);
+      /*
       console.log(arg1);
       // arg1 now equals 'one' and arg2 now equals 'two'
       callback(null, 'done');
+      */
     }
 
     async.waterfall([
-      taskA,
+      async.apply(taskA,1,2),
       taskB
     ], function (err, result) {
       // result now equals 'done'
@@ -186,7 +191,6 @@ module.exports = {
 
     var err_msg = "Don't Understand",
       stop_sentence = "stop_sentence",
-      feedback = "feedback",
       component_name,
       msg = req.param('msg'),
       feedback_switch = req.param('feedback_switch'),
@@ -199,9 +203,13 @@ module.exports = {
       end_conversation = 3,
       yes_conversation = 4,
       no_conversation = 5,
-      short_conversation = 1,
-      end_recommend_component = 3;
-
+      like_conversation = 6,
+      dislike_conversation = 7,
+      short_state = 1,
+      middle_state = 3,
+      end_recommend_component = 3,
+      async_on = 1,
+      async_off = 0;
 
     if(msg == null){
       return api_res(res, "no msg")
@@ -460,8 +468,10 @@ module.exports = {
       return question_num;
     }//end func
 
+
     /*
-     * feature: bot will ask label's question to user.
+     * feature: bot will ask label's question to user. this function will active
+     *        in case that bot decide to asking the question to user(not to answer or recommend).
      * */
     function botAskQuestion(current_conversation , conversation_step) {
 
@@ -470,40 +480,67 @@ module.exports = {
         top_label_query_sort = "label_score DESC",
         question_num = countQuestion(current_conversation, conversation_step);
 
-      label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
+      /*
+       * feature: record the bot's action (recommend,ask label, etc)
+       * parameter:
+       *  integer ->the label id. This label is come from the currently label
+       *         bot is asking to the user.
+       *  string -> the label name for send to the returnQuestion function.
+       *  integer -> the user id (currently using the system)
+       *
+       * */
+      function botLogRecord(label_id, label_name ,callback) {
 
-        if(err){console.log(err)}
-        //for first time that bot ask user.There no need to make user vector
-        if(conversation_step == 2){
-          return res.json({
-            answer: "Do you interested in "+records[0].label_name+"?"
-          });
-        }
-        else {
-          makeUserMatrix(current_conversation, conversation_step);
-          return res.json({
-            answer: "Do you interested in "+records[question_num].label_name+"?"
-          });
-        }
+        var bot_log_query = [{
+          label_id: label_id,
+          user_id: user_id,
+          state_id: middle_state
+        }];
 
-      });//end async model find
+        bot_log.create(bot_log_query).exec(function (err, record) {
+          console.log("make new bot's log: ", record);
+        });
+
+        callback(null, label_name);
+
+      }
+
+      function chooseLabel(callback) {
+
+        label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, records) {
+
+          if (err) {
+            console.log(err)
+          }
+          //for first time that bot ask user.There no need to make user vector
+          if (conversation_step == 2) {
+
+            callback(null, records[0].label_id, records[0].label_name);
+
+          }
+          else {
+
+            makeUserMatrix(current_conversation, conversation_step);
+
+            callback(null, records[question_num].label_id, records[question_num].label_name);
+
+          }
+
+        });//end model find
+
+      }//end func
+
+      async.waterfall([
+        chooseLabel,
+        botLogRecord
+      ],function (err, label_name) {
+
+        return res.json({
+          answer: "Do you interested in " + label_name + "?"
+        });
+      });//end async
 
     }//end func
-
-    /*
-    * feature: save user's feedback
-    * */
-    function userFeedback(current_conversation , conversation_step, spot_id) {
-
-      var feedback_query = {where: {spot_id: spot_id}},
-        user_matrix;
-
-      user_matrix = makeUserMatrix(current_conversation, conversation_step);
-
-      feedback.find(feedback_query);
-
-    }
-
 
     /*
      * feature: make answer or question from user
@@ -524,11 +561,14 @@ module.exports = {
     function conversationDecision(cosine_degree, spot_name, spot_id ,current_conversation) {
 
       //note: we should make some algorithm for decide threshold
-      var state_threshold = 55;
+      var state_threshold = 55,
+        log_id = current_conversation[current_conversation.length -1 ].log_id;
 
       if(cosine_degree >= state_threshold){//answer question
         //userFeedback(current_conversation, current_conversation.length, spot_id);
-        makeLog(end_conversation, end_recommend_component);
+
+        makeLog(end_conversation, end_recommend_component, async_off);
+
         return res.json({
           answer: "Then I recommend: "+spot_name,
           feedback_question: "Like or Dislike?"
@@ -550,18 +590,31 @@ module.exports = {
     * feature: reference the type of feedback and generate conversation from ref.
     * parameter:
     *   integer -> log id
-    *   integer -> feedback type <1:like>, <0:dislike>
+    *   integer -> feedback type <6:like>, <7:dislike> 6 and 7 are reference
+    *              from the value of like_conversation and dislike_conversation.
     * */
-    function recordFeedback() {
+    function recordFeedback(log_id, feedback_type) {
+
+      var feedback_query_insert = [{
+          log_id: log_id,
+          feedback_type: feedback_type
+      }];
+
+      feedback.create(feedback_query_insert).exec(function (err, record) {
+        console.log("record the feedback: ", record);
+      });
 
     }
 
     /*
     * feature: make conversation for recommend spot of chat-bot
-    * parameter: array -> set of answer
+    * parameter:
+    *   1.) array -> set of answer
+    *   2.) integer -> log id
     * return: string -> conversations
     * */
-    function makeConversation(conversation) {
+    function makeConversation(conversation, log_id) {
+
       //console.log("input parameter: ", conversation);
 
       var log_query = {
@@ -609,7 +662,8 @@ module.exports = {
           current_conversation_counter++;
         }
 
-        console.log(current_conversation);
+        console.log("current conversation: ", current_conversation);
+        console.log("component id: ", conversation.component_id);
 
         //conversation's answer decide
         if(current_conversation.length == 2 && conversation.component_id == 2){//when start
@@ -621,22 +675,22 @@ module.exports = {
             component_id: conversation.component_id
           });
         }
-        else if(current_conversation.length > 2 && conversation.component_id > 3){//yes or no case
-
-          if(feedback_switch == feedback_switch_active){ //if a component is a feedback type.
-
-            if(conversation.component_id == 6){
-
-            }
-            else if(conversation.component_id == 7){
-
-            }
-
-          }//end if
+        else if(current_conversation.length > 2 && conversation.component_id > 3 <6){//yes or no case
 
           user_label_score = makeUserMatrix(current_conversation, current_conversation.length);
           labelRecommend(user_label_score, current_conversation);
           //conversationDecision(current_conversation);
+
+        }
+        else if(conversation.component_id >= 6 && feedback_switch == feedback_switch_active){//like or dis like case
+
+          //record the result of feedback from the user
+            if(conversation.component_id == like_conversation){
+              recordFeedback(log_id, like_conversation);
+            }
+            else if(conversation.component_id == dislike_conversation){
+              recordFeedback(log_id, dislike_conversation);
+            }
 
         }
         else{//error case
@@ -659,8 +713,9 @@ module.exports = {
     *                 This is the process of the conversation.
     *                 There has start,yes,no,end,etc.
     *   2.) integer -> conversation state.
+    *   3.) integer -> 0 is not use async 1 is use async
     * */
-    function makeLog(state_id, conversation_id, callback) {
+    function makeLog(state_id, conversation_id, async_status ,callback) {
 
       //console.log("logs are made");
 
@@ -672,16 +727,14 @@ module.exports = {
         }];
 
         log.create(log_query).exec(function (err, record) {
-          if(err){console.log(err);}
-          else{
-            console.log("", record);
-            if(callback == null){
 
-            }
-            else {
-              callback(null, record);
-            }
+          if(async_status == async_on) {
+            callback(null, record);
           }
+          else if(async_status == async_off){
+            console.log("add log: ", record);
+          }
+
         });
 
     }//end fnc
@@ -709,7 +762,7 @@ module.exports = {
           //make log or return error
           if(conversation.length == 0){return api_res(res, err_msg);}
 
-          function selectComponent(arg1, callback) {
+          function selectComponent(log_record) {
 
             var component_query = {
               select: ['component_name', 'component_id'],
@@ -725,10 +778,10 @@ module.exports = {
                 });
               }
               else if (record[0].component_id >= 2) {//recommend case
-                makeConversation(conversation[0]);
+                makeConversation(conversation[0], log_record[0].log_id);//send the current conversation.
               }
               else {//no match case
-                makeLog(end_conversation, conversation[0].component_id);
+                makeLog(end_conversation, conversation[0].component_id, async_off);
                 return api_res(res, err_msg);
               }
 
@@ -738,7 +791,7 @@ module.exports = {
 
           //make sync log must make before component selected
           async.waterfall([
-            async.apply(makeLog, short_conversation, conversation[0].component_id),
+            async.apply(makeLog, short_state, conversation[0].component_id, async_on),
             selectComponent
           ], function (err, result) {
 

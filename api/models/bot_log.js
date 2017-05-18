@@ -1,20 +1,23 @@
 /**
- * Created by Varit on 3/17/17.
+ * Created by Varit on 5/18/17.
  */
 
 module.exports = {
 
   attributes: {
-    feedback_id: {
+    bot_log_id:{
       type: 'integer',
       autoIncrement: true,
       primaryKey: true,
       unique: true
     },
-    bot_log_id: {
+    label_id:{
       type: 'integer'
     },
-    feedback: {
+    user_id:{
+      type: 'integer'
+    },
+    state_id:{
       type: 'integer'
     }
   }
