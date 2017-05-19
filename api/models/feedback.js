@@ -11,10 +11,7 @@ module.exports = {
       primaryKey: true,
       unique: true
     },
-    bot_log_id: {
-      type: 'integer'
-    },
-    feedback: {
+    label_id: {
       type: 'integer'
     }
   }
