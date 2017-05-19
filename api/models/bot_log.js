@@ -19,6 +19,10 @@ module.exports = {
     },
     state_id:{
       type: 'integer'
+    },
+    label_score:{
+      type: 'integer',
+      size: 200
     }
   }
 

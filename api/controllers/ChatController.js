@@ -13,7 +13,8 @@
 
 var request = require('request'),
   Promise = require('promise'),
-  async = require('async');
+  async = require('async'),
+  unique = require('array-unique');
 
 promise = Promise.resolve();
 
@@ -232,17 +233,16 @@ module.exports = {
           sortBy = require('sort-array');
 
         //this is [a,b]
-        var query = "SELECT DISTINCT article.label_id, article.spot_id, label.label_score, COUNT(*) AS 'Num' \n" +
-          "FROM (SELECT * FROM label ORDER BY label.label_score DESC LIMIT 10) label \n" +
-          "INNER JOIN article \n" +
-          "ON label.label_id = article.label_id \n" +
-          "GROUP BY label.label_id, article.spot_id \n" +
-          "ORDER BY label.label_score DESC\n";
+        var query = "SELECT article.label_id, article.spot_id \n"+
+              "FROM feedback \n"+
+              "INNER JOIN article \n"+
+              "ON feedback.label_id = article.label_id \n"+
+              "GROUP BY feedback.label_id, article.spot_id ";
 
         var spot_label_matrix = [],
           spot_label_matrix_counter = 0,
           top_label_query = {select: ['label_id', 'label_name']},
-          top_label_query_limit = 10,
+          top_label_query_limit = 20,
           top_label_query_sort = "label_score DESC",
           top_label_name = [];
 
@@ -381,55 +381,120 @@ module.exports = {
 
         }//end function
 
-        //find top label
-        label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, top_label_records) {
+        /*
+        * feature: find the label's name because feedback table don't have label_name 's row
+        * */
+        function feedbackLabel(callback) {
+          var feedback_label_query = "SELECT DISTINCT feedback.label_id, label.label_name \n"+
+                                  "FROM feedback \n"+
+                                  "JOIN label \n"+
+                                  "ON feedback.label_id = label.label_id";
 
-          var top_label = [],
-            algorithm_result;
+          label.query(feedback_label_query, function (err, records) {
+            console.log("feedbackLabel's record: ", records[0].label_id);
+            callback(null, records);
+          })
+        }
 
-          for (var i = 0; i < top_label_records.length; i++) {
-            top_label[i] = top_label_records[i].label_id;
-            top_label_name[i] = top_label_records[i].label_name;
-          }
+        function findTopLabel(feedback_label, callback) {
 
-          console.log(top_label);
+          //find top label
+          label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, top_label_records) {
 
-          if (err) {
-            console.log(err);
-          }
-          else {
-          }
+            var top_label = [],
+              algorithm_result,
+              default_counter = 0,
+              top_label_length = 10;
 
-          //make matrix
-          label.query(query, function (err, records) {
+            for (var i = 0; i < top_label_length; i++) {
 
-            if (err) {
-              console.log(err)
+              if (feedback_label[i] != null) {
+                top_label[i] = feedback_label[i].label_id;
+
+                console.log("label from feedback", top_label[i]);
+              }
+              else {
+                top_label[i] = top_label_records[i].label_id;
+                default_counter++;
+                console.log("label from default", top_label[i]);
+              }
             }
-            else {
 
-              for (var i = 0; i < records.length; i++) {
-                addMatrix(records[i].spot_id, records[i].label_id, records[i].Num, top_label);
+            top_label = unique(top_label);
+
+            for(j=0; j<11 - top_label.length;j++){
+              top_label.push(top_label_records[default_counter].label_id);
+              default_counter++;
+            }
+
+            console.log("top label: ", top_label);
+
+            callback(null, top_label);
+
+          });//end label find
+        }
+
+          function findArticle(top_label, callback) {
+
+            var article_query = {
+              select: ['spot_id', 'label_id']
+            },
+              counter = 0,
+              spot_id = [],
+              label_id = [],
+              j =0;
+
+            article.find(article_query).exec(function (err, article_records) {
+
+              for(var i=0; i<article_records.length;i++){
+
+                //console.log("compare article record: ", article_records[i].label_id);
+
+                for(j=0; j<top_label.length; j++) {
+
+                  if (article_records[i].label_id == top_label[j]) {
+
+                    spot_id[counter] = article_records[i].spot_id;
+                    label_id[counter] = article_records[i].label_id;
+                    counter++;
+                    console.log("match spot&label", spot_id, label_id);
+
+                  }
+                }
               }
 
-              algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
+              callback(null, spot_id, label_id, top_label);
+            });
+          }//end article find
 
-              console.log("algorithm_result: " + algorithm_result[0].spot_id);
+          function makeMatrix(spot_id, label_id, top_label ,callback) {
 
-              spot.find({
-                select: ['spot_name'],
-                where: {spot_id: algorithm_result[0].spot_id}
-              }).exec(function (err, spot_db) {
+            for (var i = 0; i < spot_id.length; i++) {
+              addMatrix(spot_id[i], label_id[i], 1, top_label);
+            }
 
-                conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation);
+            algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
 
-              });
+            console.log("algorithm_result: " + algorithm_result[0].spot_id);
 
-            }//end else
+            spot.find({
+              select: ['spot_name'],
+              where: {spot_id: algorithm_result[0].spot_id}
+            }).exec(function (err, spot_db) {
 
-          });//end label query
+              conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation);
 
-        });//end label find
+            });
+          }
+
+        async.waterfall([
+          feedbackLabel,
+          findTopLabel,
+          findArticle,
+          makeMatrix
+        ], function (err, result) {
+
+        });
 
       }//end label recommend function
 
@@ -512,7 +577,8 @@ module.exports = {
           var bot_log_query = [{
             label_id: label_id,
             user_id: user_id,
-            state_id: middle_state
+            state_id: middle_state,
+            label_score: 101
           }];
 
           bot_log.create(bot_log_query).exec(function (err, records) {
@@ -622,7 +688,10 @@ module.exports = {
           };
 
           bot_log.find(bot_log_query).exec(function (err, record) {
-            callback(null, record[0].label_id);
+            if(err){console.log(err);}
+            else {
+              callback(null, record[0].label_id);
+            }
           });
         }
 
