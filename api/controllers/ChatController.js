@@ -213,7 +213,16 @@ module.exports = {
         middle_state = 3,
         end_recommend_component = 3,
         async_on = 1,
-        async_off = 0;
+        async_off = 0,
+        //query the 
+        top_label_feedback_query = "SELECT label.label_id, label_name, label_score FROM label \n"+
+          "WHERE label_id IN (SELECT label_id FROM bot_log WHERE feedback_id = 1) \n"+
+          "ORDER BY label.label_score DESC \n"+
+          "LIMIT 10",
+        top_label_default_query = "SELECT label.label_id, label_name, label_score FROM label \n"+
+          "WHERE label_id NOT IN (SELECT label_id FROM bot_log) \n"+
+          "ORDER BY label.label_score DESC \n"+
+          "LIMIT 10";
 
       if (msg == null) {
         return api_res(res, "no msg")
@@ -344,10 +353,10 @@ module.exports = {
         }//end function
 
         /*
-         * feature: add matrix to return array
+         * feature: generate the array and add the integer to array
          * parameter:
          *   1.) integer -> spot id
-         *   2.) integer -> label_id
+         *   2.) integer -> label_id in the spot id
          *   3.) integer -> frequency
          *   4.) array -> top label's list
          * */
@@ -396,9 +405,14 @@ module.exports = {
           })
         }
 
+        /*
+        *
+        * feature: generate the top label FROM the label
+        *         in the feedback table and default label from label table
+        * */
         function findTopLabel(feedback_label, callback) {
 
-          //find top label
+          //find top label from label table
           label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, top_label_records) {
 
             var top_label = [],
@@ -434,7 +448,11 @@ module.exports = {
           });//end label find
         }
 
-          function findArticle(top_label, callback) {
+        /*
+        *
+        * feature: find the spot that match to the top label
+        * */
+        function findArticle(top_label, callback) {
 
             var article_query = {
               select: ['spot_id', 'label_id']
@@ -462,10 +480,11 @@ module.exports = {
                   }
                 }
               }
-
+              //send the spo id and label id in the spot id
               callback(null, spot_id, label_id, top_label);
             });
-          }//end article find
+          }//end function
+
 
           function makeMatrix(spot_id, label_id, top_label ,callback) {
 
@@ -475,13 +494,14 @@ module.exports = {
 
             algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
 
-            console.log("algorithm_result: " + algorithm_result[0].spot_id);
+            //console.log("algorithm_result: " + algorithm_result[0].spot_id);
 
             spot.find({
               select: ['spot_name'],
               where: {spot_id: algorithm_result[0].spot_id}
             }).exec(function (err, spot_db) {
 
+              //make decision for question or recommend
               conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation);
 
             });
@@ -562,7 +582,6 @@ module.exports = {
             "LIMIT 10",
           question_num = countQuestion(current_conversation, conversation_step);
 
-
         /*
          * feature: record the bot's action (recommend,ask label, etc)
          * parameter:
@@ -589,6 +608,10 @@ module.exports = {
 
         }
 
+        /*
+        *
+        * feature: find top label from DB
+        * */
         function chooseLabel(callback) {
 
           label.query(top_label_query, function (err, records) {
@@ -648,6 +671,22 @@ module.exports = {
         var state_threshold = 55,
           component_id = current_conversation[current_conversation.length - 1].component_id;
 
+
+        function lastBotLogRecord(callback) {
+          var bot_log_query = {
+            select :['label_id'],
+            sort: 'bot_log_id DESC',
+            limit: 10
+          };
+
+          bot_log.find(bot_log_query).exec(function (err, record) {
+            if(err){console.log(err);}
+            else {
+              callback(null, record[0].label_id);
+            }
+          });
+        }
+
         /*
          * feature: reference the type of feedback and generate conversation from ref.
          * parameter:
@@ -661,7 +700,7 @@ module.exports = {
             label_id: label_id
           }];
 
-          if(component_id == 2) {// if user answer in "yes"
+          if(component_id == 2) {// if user answer in "yes" in start
 
             feedback.create(feedback_query_insert).exec(function (err, record) {
               console.log("record the feedback: ", record);
@@ -678,21 +717,6 @@ module.exports = {
 
           callback(null, "done");
 
-        }
-
-        function lastBotLogRecord(callback) {
-          var bot_log_query = {
-            select :['label_id'],
-            sort: 'bot_log_id DESC',
-            limit: 10
-          };
-
-          bot_log.find(bot_log_query).exec(function (err, record) {
-            if(err){console.log(err);}
-            else {
-              callback(null, record[0].label_id);
-            }
-          });
         }
 
         function thresholdDecision(done, callback) {
