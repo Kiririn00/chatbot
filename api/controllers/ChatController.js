@@ -211,10 +211,10 @@ module.exports = {
         dislike_conversation = 7,
         short_state = 1,
         middle_state = 3,
+        end_state = 4,
         end_recommend_component = 3,
         async_on = 1,
         async_off = 0,
-        //query the 
         top_label_feedback_query = "SELECT label.label_id, label_name, label_score FROM label \n"+
           "WHERE label_id IN (SELECT label_id FROM bot_log WHERE feedback_id = 1) \n"+
           "ORDER BY label.label_score DESC \n"+
@@ -222,7 +222,8 @@ module.exports = {
         top_label_default_query = "SELECT label.label_id, label_name, label_score FROM label \n"+
           "WHERE label_id NOT IN (SELECT label_id FROM bot_log) \n"+
           "ORDER BY label.label_score DESC \n"+
-          "LIMIT 10";
+          "LIMIT 10",
+        calculate_dimension = 10;
 
       if (msg == null) {
         return api_res(res, "no msg")
@@ -569,18 +570,102 @@ module.exports = {
         return question_num;
       }//end func
 
+      /*
+      * feature: find the default label
+      * */
+      function defaultLabel(callback) {
+        label.query(top_label_default_query, function (err, default_label_records) {
+          callback(null, default_label_records);
+        });
+      }
 
       /*
-       * feature: bot will ask label's question to user. this function will active
+      * feature: find feedback label
+      * parameter:
+      *   func -> defaultLabel(require)
+      * */
+      function feedbackLabel(default_label_records, callback) {
+        label.query(top_label_feedback_query, function (err, feedback_label_records) {
+          callback(null, default_label_records, feedback_label_records);
+        })
+      }
+
+      /*
+      * feature: use the feedback label and default label to make a top label
+      * parameter:
+      *   func -> feedbackLabel(require)
+      * */
+      function generateTopLabel(default_label_records, feedback_label_records, callback) {
+
+        var default_label_length = default_label_records.length,
+          feedback_label_length = feedback_label_records.length,
+          add_default_length = calculate_dimension-feedback_label_length,
+          top_label = {label_id:[], label_name:[]};
+
+        console.log("add_default_length: ", add_default_length);
+        console.log("default_label_records: ", default_label_records);
+
+
+        if(default_label_records.length < 10){
+          makeLog(end_state, end_recommend_component, async_off);
+          return res.json({
+            answer:"There are not enough label for this user"
+          });
+        }
+
+        //add default label into top label
+        for(var l=0; l<add_default_length;l++){
+          top_label.label_id.push(default_label_records[l].label_id);
+          top_label.label_name.push(default_label_records[l].label_name);
+        }
+        //add feedback label into top label
+        for(var i=0; i<feedback_label_length;i++){
+          top_label.label_id.push(feedback_label_records[i].label_id);
+          top_label.label_name.push(feedback_label_records[i].label_name);
+        }
+
+        callback(null, top_label, add_default_length);
+
+      }
+
+      /*
+       * feature: generate the question of the chat-bot. this function will active
        *        in case that bot decide to asking the question to user(not to answer or recommend).
        * */
       function botAskQuestion(current_conversation, conversation_step) {
 
-        var top_label_query = "SELECT label.label_id, label_name, label_score FROM label \n" +
-            "WHERE label_id NOT IN (SELECT label_id FROM bot_log) \n" +
-            "ORDER BY label.label_score DESC \n" +
-            "LIMIT 10",
-          question_num = countQuestion(current_conversation, conversation_step);
+        /*
+         *
+         * feature: find top label from DB
+         * */
+        function chooseLabel(top_label, add_default_length, callback) {
+
+          var question_num = countQuestion(current_conversation, conversation_step);
+
+          console.log("top label id: ", top_label);
+
+          //for first time that bot ask user.There no need to make user vector
+          if (conversation_step == 2) {
+            callback(null, top_label.label_id[0], top_label.label_name[0]);
+          }
+          else {
+            if(question_num < add_default_length) {// range of the default label. It mean can make question
+
+                makeUserMatrix(current_conversation, conversation_step);
+                callback(null, top_label.label_id[question_num], top_label.label_name[question_num]);
+
+            }
+            else{
+
+              makeLog(end_state, end_recommend_component, async_off);
+              return res.json({
+                answer: "Can't find your suit location. Please try again"
+              });
+            }
+
+         }
+
+        }//end func
 
         /*
          * feature: record the bot's action (recommend,ask label, etc)
@@ -608,36 +693,10 @@ module.exports = {
 
         }
 
-        /*
-        *
-        * feature: find top label from DB
-        * */
-        function chooseLabel(callback) {
-
-          label.query(top_label_query, function (err, records) {
-
-            if (err) {
-              console.log(err)
-            }
-            //for first time that bot ask user.There no need to make user vector
-            if (conversation_step == 2) {
-
-              callback(null, records[0].label_id, records[0].label_name);
-
-            }
-            else {
-
-              makeUserMatrix(current_conversation, conversation_step);
-
-              callback(null, records[question_num].label_id, records[question_num].label_name);
-
-            }
-
-          });
-
-        }//end func
-
         async.waterfall([
+          defaultLabel,
+          feedbackLabel,
+          generateTopLabel,
           chooseLabel,
           botLogRecord
         ], function (err, label_name) {
@@ -721,7 +780,7 @@ module.exports = {
 
         function thresholdDecision(done, callback) {
 
-          if (cosine_degree >= state_threshold) {//answer question
+          if (cosine_degree < state_threshold) {//answer question
             //userFeedback(current_conversation, current_conversation.length, spot_id);
 
             makeLog(end_conversation, end_recommend_component, async_off);
@@ -732,7 +791,7 @@ module.exports = {
             });
           }
           //note: even length and threshold is ==, It return false. Bug?
-          else if (cosine_degree < state_threshold) {//ask question
+          else if (cosine_degree >= state_threshold) {//ask question
             botAskQuestion(current_conversation, current_conversation.length, top_label_records);
           }
           else {
@@ -861,7 +920,7 @@ module.exports = {
        *   1.) integer -> the state of conversation.
        *                 This is the process of the conversation.
        *                 There has start,yes,no,end,etc.
-       *   2.) integer -> conversation state.
+       *   2.) integer -> conversation id.
        *   3.) integer -> 0 is not use async 1 is use async
        * */
       function makeLog(state_id, conversation_id, async_status, callback) {

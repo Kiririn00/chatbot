@@ -12,7 +12,8 @@ module.exports = {
       unique: true
     },
     label_id:{
-      type: 'integer'
+      type: 'integer',
+      required: true
     },
     user_id:{
       type: 'integer'
