@@ -237,24 +237,14 @@ module.exports = {
        * parameter:
        *   1.) array ->  user's input conversation detail
        * */
-      function labelRecommend(label_score, current_conversation) {
+      function labelRecommend(current_conversation) {
 
         var similarity = require('compute-cosine-similarity'),
           sortBy = require('sort-array');
 
-        //this is [a,b]
-        var query = "SELECT article.label_id, article.spot_id \n"+
-              "FROM feedback \n"+
-              "INNER JOIN article \n"+
-              "ON feedback.label_id = article.label_id \n"+
-              "GROUP BY feedback.label_id, article.spot_id ";
-
         var spot_label_matrix = [],
           spot_label_matrix_counter = 0,
-          top_label_query = {select: ['label_id', 'label_name']},
-          top_label_query_limit = 20,
-          top_label_query_sort = "label_score DESC",
-          top_label_name = [];
+          conversation_step = current_conversation.length;
 
 
         /*
@@ -353,6 +343,103 @@ module.exports = {
 
         }//end function
 
+
+        /*
+         * feature: reference log for make user's matrix by add integer to array
+         * parameter:
+         *   1.) array -> presently set of the conversation.
+         *   2.) integer -> length of current conversation
+         * res return:
+         *   array -> bot answer
+         * */
+        function makeUserMatrix(top_label, add_default_length ,callback) {
+
+          var label_score_counter = 0,
+            feedback_label_score_counter = 9,
+            label_score = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            positive_answer = 1,
+            negative_answer = -1;
+
+          //add the feedback value to label score
+          for(var l=label_score.length; l > add_default_length; l-- ){
+            label_score[l-1] = positive_answer;
+          }
+
+          //add the normal value(get from the conversation) into label score
+          for (var i = 0; i < conversation_step; i++) {
+
+            if (current_conversation[i].component_id >= 4) {
+
+              if (current_conversation[i].component_id == 4) {//yes
+                label_score[label_score_counter] = positive_answer;
+                label_score_counter++;
+              }
+              else if (current_conversation[i].component_id == 5) {//no
+                label_score[label_score_counter] = negative_answer;
+                label_score_counter++;
+              }
+
+            }//end if
+
+          }//end loop
+
+          console.log("user's label: ", label_score);
+          callback(null, top_label, add_default_length ,label_score);
+                      //We will do after this. Have to make User vector by pickup the feedback label
+                      //into the vector like if feedback have 5 label when start the vector
+                      //should be [0,0,0,0,0,1,1,1,1,1]
+
+        }//end fnc
+
+        /*
+        *
+        * feature: find the spot that match to the top label
+        * */
+        function findArticle(top_label, add_default_length, label_score, callback) {
+
+            var article_query = {
+              select: ['spot_id', 'label_id']
+            },
+              counter = 0,
+              spot_id = [],
+              label_id = [],
+              j =0;
+
+            article.find(article_query).exec(function (err, article_records) {
+
+              //console.log("article_records: ", article_records);
+
+              for(var i=0; i<article_records.length;i++){
+
+                //for debug
+                //console.log("compare article record: ", article_records[i].label_id, top_label.label_id[i]);
+
+                for(j=0; j<top_label.label_id.length; j++) {
+
+                  if (article_records[i].label_id == top_label.label_id[j]) {
+
+                    spot_id[counter] = article_records[i].spot_id;
+                    label_id[counter] = article_records[i].label_id;
+                    counter++;
+                    console.log("match spot&label", spot_id, label_id);
+
+                  }
+                }
+
+                if(spot_id.length == 0) {
+                    makeLog(end_state, end_recommend_component, async_off);
+                    return res.json({
+                      answer: "Can't find spot that suit from the label_id in article table."
+                    });
+                }
+
+
+              }
+              //send the spo id and label id in the spot id
+              callback(null, spot_id, label_id, top_label, add_default_length , label_score, article_records);
+            });
+        }//end function
+
         /*
          * feature: generate the array and add the integer to array
          * parameter:
@@ -377,7 +464,7 @@ module.exports = {
               frequency_matrix[label_index] = frequency;
 
               //if you want to check the all data of the location uncomment this
-              //debugResult(top_label[i], spot_id, frequency);
+              debugResult(top_label[i], spot_id, frequency);
 
             }
 
@@ -392,125 +479,128 @@ module.exports = {
         }//end function
 
         /*
-        * feature: find the label's name because feedback table don't have label_name 's row
+        * feature: change the value of the array from
         * */
-        function feedbackLabel(callback) {
-          var feedback_label_query = "SELECT DISTINCT feedback.label_id, label.label_name \n"+
-                                  "FROM feedback \n"+
-                                  "JOIN label \n"+
-                                  "ON feedback.label_id = label.label_id";
+        function updateMatrix(article_records, spot_label_matrix) {
 
-          label.query(feedback_label_query, function (err, records) {
-            console.log("feedbackLabel's record: ", records[0].label_id);
-            callback(null, records);
-          })
-        }
+          var spot_label_matrix_num = spot_label_matrix.length,
+            update_spot_vectors = [],
+            update_decide_counter = 0,
+            update_spot_vector_index = [],
+            update_spot_vector_index_sum = [],
+            non_update_spot_vectors = [],
+            update_vector;
+
+          console.log("article_record: ", article_records, "spot_label_matrix: " ,spot_label_matrix);
+
+          function makeUpdateSpotVectors(update_spot_vector_index_sum) {
+            var index_num = update_spot_vector_index_sum.length,
+              update_vector = [0,0,0,0,0,0,0,0,0,0],
+              spot_label_matrix_test = [],
+              counter = 0;
+
+            update_vector[ update_spot_vector_index_sum[0].update_index ] = 1;
+            spot_label_matrix_test[0] = {
+              spot_id: update_spot_vector_index_sum[0].spot_id,
+              matrix: update_vector
+            };
+
+            for(var i=0; i<index_num; i++){
+
+              for(var j=0; j<spot_label_matrix_test.length;j++){
+
+               if(update_spot_vector_index_sum[i].spot_id == spot_label_matrix_test[j].spot_id ){
+                  counter++;
+                 spot_label_matrix_test[j].matrix[ update_spot_vector_index_sum[i].update_index ] = 1;
+
+               }
+               else if(update_spot_vector_index_sum[i].spot_id != spot_label_matrix_test[j].spot_id){
+
+                 update_vector[ update_spot_vector_index_sum[i].update_index ] = 1;
+                 spot_label_matrix_test[i] = {
+                   spot_id: update_spot_vector_index_sum[i].spot_id,
+                   matrix: update_vector
+                 };
+
+               }
+
+             }// end loop
+
+             update_vector = [0,0,0,0,0,0,0,0,0,0];
+
+            }//end loop
+
+            //Note: there have a same value that should not be
+
+            return spot_label_matrix_test;
+
+          }//end func
+
+          //find the index of spot that have 1
+          for(var i=0; i<spot_label_matrix_num;i++){
+            for(var j=0;j<spot_label_matrix_num;j++) {
+
+              if (spot_label_matrix[i].spot_id == spot_label_matrix[j].spot_id) {//update case
+
+                  //findUpdateValue(spot_label_matrix[i].spot_id, spot_label_matrix);
+                  update_spot_vector_index.push( spot_label_matrix[i].matrix.indexOf(1) );
+
+              }//end if
+            }//end loop
+
+            update_spot_vector_index_sum.push({
+              spot_id: spot_label_matrix[i].spot_id,
+              update_index: update_spot_vector_index[0]
+            });
+            update_spot_vector_index = [];
+
+          }//end loop
+
+          console.log("update_spot_vector_index_sum", update_spot_vector_index_sum);
+          var spot_label_matrix_update = makeUpdateSpotVectors(update_spot_vector_index_sum);
+
+          return spot_label_matrix_update;
+          //console.log("update_spot_vectors: ",update_spot_vectors, "\n");
+          //console.log("non_update_spot_vectors: ",non_update_spot_vectors, "\n");
+
+        }//end func
 
         /*
-        *
-        * feature: generate the top label FROM the label
-        *         in the feedback table and default label from label table
+        * feature: make the result matrix
+        * note: spot_label_matrix is the spot vector
         * */
-        function findTopLabel(feedback_label, callback) {
+        function makeMatrix(spot_id, label_id, top_label, add_default_length, label_score, article_records ,callback) {
 
-          //find top label from label table
-          label.find(top_label_query).sort(top_label_query_sort).limit(top_label_query_limit).exec(function (err, top_label_records) {
+          //debug the spot id that match with the label for recommend
+          console.log("spot id: ", spot_id);
 
-            var top_label = [],
-              algorithm_result,
-              default_counter = 0,
-              top_label_length = 10;
-
-            for (var i = 0; i < top_label_length; i++) {
-
-              if (feedback_label[i] != null) {
-                top_label[i] = feedback_label[i].label_id;
-
-                console.log("label from feedback", top_label[i]);
-              }
-              else {
-                top_label[i] = top_label_records[i].label_id;
-                default_counter++;
-                console.log("label from default", top_label[i]);
-              }
-            }
-
-            top_label = unique(top_label);
-
-            for(j=0; j<11 - top_label.length;j++){
-              top_label.push(top_label_records[default_counter].label_id);
-              default_counter++;
-            }
-
-            console.log("top label: ", top_label);
-
-            callback(null, top_label);
-
-          });//end label find
-        }
-
-        /*
-        *
-        * feature: find the spot that match to the top label
-        * */
-        function findArticle(top_label, callback) {
-
-            var article_query = {
-              select: ['spot_id', 'label_id']
-            },
-              counter = 0,
-              spot_id = [],
-              label_id = [],
-              j =0;
-
-            article.find(article_query).exec(function (err, article_records) {
-
-              for(var i=0; i<article_records.length;i++){
-
-                //console.log("compare article record: ", article_records[i].label_id);
-
-                for(j=0; j<top_label.length; j++) {
-
-                  if (article_records[i].label_id == top_label[j]) {
-
-                    spot_id[counter] = article_records[i].spot_id;
-                    label_id[counter] = article_records[i].label_id;
-                    counter++;
-                    console.log("match spot&label", spot_id, label_id);
-
-                  }
-                }
-              }
-              //send the spo id and label id in the spot id
-              callback(null, spot_id, label_id, top_label);
-            });
-          }//end function
-
-
-          function makeMatrix(spot_id, label_id, top_label ,callback) {
-
-            for (var i = 0; i < spot_id.length; i++) {
-              addMatrix(spot_id[i], label_id[i], 1, top_label);
-            }
-
-            algorithm_result = algorithmCalculate(label_score, spot_label_matrix);
-
-            //console.log("algorithm_result: " + algorithm_result[0].spot_id);
-
-            spot.find({
-              select: ['spot_name'],
-              where: {spot_id: algorithm_result[0].spot_id}
-            }).exec(function (err, spot_db) {
-
-              //make decision for question or recommend
-              conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation);
-
-            });
+          for (var i = 0; i < spot_id.length; i++) {
+            //this function will update the value of spot_label_matrix.
+            addMatrix(spot_id[i], label_id[i], 1, top_label.label_id);
           }
 
+          var spot_label_matrix_update = updateMatrix(article_records, spot_label_matrix);
+
+          algorithm_result = algorithmCalculate(label_score, spot_label_matrix_update);
+
+          //console.log("algorithm_result: " + algorithm_result[0].spot_id);
+
+          spot.find({
+            select: ['spot_name'],
+            where: {spot_id: algorithm_result[0].spot_id}
+          }).exec(function (err, spot_db) {
+
+            //send to the fnc that make decision for question or recommend
+            conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation);
+
+          });
+        }
+
         async.waterfall([
+          defaultLabel,
           feedbackLabel,
-          findTopLabel,
+          generateTopLabel,
+          makeUserMatrix,
           findArticle,
           makeMatrix
         ], function (err, result) {
@@ -631,6 +721,10 @@ module.exports = {
       /*
        * feature: generate the question of the chat-bot. this function will active
        *        in case that bot decide to asking the question to user(not to answer or recommend).
+       * logic:
+       *  1.) if the message come is the start conversation. The first index of array of top label can be ask.
+       *  2.) if not there has to be in 2 case.
+       *  3.)
        * */
       function botAskQuestion(current_conversation, conversation_step) {
 
@@ -667,39 +761,12 @@ module.exports = {
 
         }//end func
 
-        /*
-         * feature: record the bot's action (recommend,ask label, etc)
-         * parameter:
-         *  integer ->the label id. This label is come from the currently label
-         *         bot is asking to the user.
-         *  string -> the label name for send to the returnQuestion function.
-         *  integer -> the user id (currently using the system)
-         *
-         * */
-        function botLogRecord(label_id, label_name, callback) {
-
-          var bot_log_query = [{
-            label_id: label_id,
-            user_id: user_id,
-            state_id: middle_state,
-            label_score: 101
-          }];
-
-          bot_log.create(bot_log_query).exec(function (err, records) {
-            console.log("make new bot's log: ", records);
-          });
-
-          callback(null, label_name);
-
-        }
-
         async.waterfall([
           defaultLabel,
           feedbackLabel,
           generateTopLabel,
-          chooseLabel,
-          botLogRecord
-        ], function (err, label_name) {
+          chooseLabel
+        ], function (err, label_id, label_name) {
 
           return res.json({
             answer: "Do you interested in " + label_name + "?"
@@ -774,16 +841,17 @@ module.exports = {
 
           }
 
-          callback(null, "done");
+          callback(null, label_id);
 
         }
 
-        function thresholdDecision(done, callback) {
+        function thresholdDecision(label_id, callback) {
 
           if (cosine_degree < state_threshold) {//answer question
             //userFeedback(current_conversation, current_conversation.length, spot_id);
 
             makeLog(end_conversation, end_recommend_component, async_off);
+            botLogRecord(current_conversation, current_conversation.length, top_label_records);
 
             return res.json({
               answer: "Then I recommend: " + spot_name,
@@ -799,6 +867,34 @@ module.exports = {
               answer: "Error: Yes or No case"
             });
           }
+        }
+
+        /*
+         * feature: record the bot's action (recommend,ask label, etc)
+         * parameter:
+         *  integer ->the label id. This label is come from the currently label
+         *         bot is asking to the user.
+         *  string -> the label name for send to the returnQuestion function.
+         *  integer -> the user id (currently using the system)
+         *
+         * */
+        function botLogRecord(current_conversation, conversation_step, top_label_records) {
+
+          for(var i=0; i<conversation_step; i++) {
+
+            var bot_log_query = [{
+              label_id: current_conversation[i].label_id,
+              user_id: user_id,
+              state_id: middle_state,
+              label_score: 101
+            }];
+
+            bot_log.create(bot_log_query).exec(function (err, records) {
+              console.log("make new bot's log of: ",records);
+            });
+
+          }
+
         }
 
         async.waterfall([
@@ -888,8 +984,8 @@ module.exports = {
           }
           else if (current_conversation.length > 2 && conversation.component_id > 3 < 6) {//yes or no case
 
-            user_label_score = makeUserMatrix(current_conversation, current_conversation.length);
-            labelRecommend(user_label_score, current_conversation);
+            //user_label_score = makeUserMatrix(current_conversation, current_conversation.length);
+            labelRecommend(current_conversation);
             //conversationDecision(current_conversation);
 
           }
