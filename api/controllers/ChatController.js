@@ -233,6 +233,35 @@ module.exports = {
       }
 
       /*
+       * feature: record the bot's action (recommend,ask label, etc)
+       * parameter:
+       *  integer ->the label id. This label is come from the currently label
+       *         bot is asking to the user.
+       *  string -> the label name for send to the returnQuestion function.
+       *  integer -> the user id (currently using the system)
+       *
+       * */
+      function botLogRecord(top_label, conversation_step) {
+
+        console.log("botLogRecord: ", current_conversation);
+
+        for (var i = 0; i < conversation_step; i++) {
+
+          var bot_log_query = [{
+            label_id: top_label.label_id[i],
+            user_id: user_id,
+            state_id: middle_state,
+            label_score: 101
+          }];
+
+          bot_log.create(bot_log_query).exec(function (err, records) {
+            console.log("make new bot's log of: ", records);
+          });
+
+        }
+      }//end func
+
+      /*
        * feature: spot recommendation system
        * parameter:
        *   1.) array ->  user's input conversation detail
@@ -391,6 +420,7 @@ module.exports = {
 
         }//end fnc
 
+
         /*
         *
         * feature: find the spot that match to the top label
@@ -424,16 +454,17 @@ module.exports = {
                     console.log("match spot&label", spot_id, label_id);
 
                   }
-                }
+                }//end loop
 
-                if(spot_id.length == 0) {
-                    makeLog(end_state, end_recommend_component, async_off);
-                    return res.json({
-                      answer: "Can't find spot that suit from the label_id in article table."
-                    });
-                }
+              }
 
+              if(spot_id.length == 0) {
 
+                makeLog(end_state, end_recommend_component, async_off);
+                botLogRecord(top_label, current_conversation.length -2);
+                return res.json({
+                  answer: "Can't find spot that suit from the label_id in article table."
+                });
               }
               //send the spo id and label id in the spot id
               callback(null, spot_id, label_id, top_label, add_default_length , label_score, article_records);
@@ -749,15 +780,14 @@ module.exports = {
                 callback(null, top_label.label_id[question_num], top_label.label_name[question_num]);
 
             }
-            else{
-
+            else{// when have noting to ask user . end of 10 dimension
               makeLog(end_state, end_recommend_component, async_off);
               return res.json({
                 answer: "Can't find your suit location. Please try again"
               });
             }
 
-         }
+         }//end else
 
         }//end func
 
@@ -851,7 +881,7 @@ module.exports = {
             //userFeedback(current_conversation, current_conversation.length, spot_id);
 
             makeLog(end_conversation, end_recommend_component, async_off);
-            botLogRecord(current_conversation, current_conversation.length, top_label_records);
+            botLogRecord(top_label_records, current_conversation.length);
 
             return res.json({
               answer: "Then I recommend: " + spot_name,
@@ -867,34 +897,6 @@ module.exports = {
               answer: "Error: Yes or No case"
             });
           }
-        }
-
-        /*
-         * feature: record the bot's action (recommend,ask label, etc)
-         * parameter:
-         *  integer ->the label id. This label is come from the currently label
-         *         bot is asking to the user.
-         *  string -> the label name for send to the returnQuestion function.
-         *  integer -> the user id (currently using the system)
-         *
-         * */
-        function botLogRecord(current_conversation, conversation_step, top_label_records) {
-
-          for(var i=0; i<conversation_step; i++) {
-
-            var bot_log_query = [{
-              label_id: current_conversation[i].label_id,
-              user_id: user_id,
-              state_id: middle_state,
-              label_score: 101
-            }];
-
-            bot_log.create(bot_log_query).exec(function (err, records) {
-              console.log("make new bot's log of: ",records);
-            });
-
-          }
-
         }
 
         async.waterfall([
@@ -948,10 +950,15 @@ module.exports = {
 
         log.find(log_query).sort('log_id ASC').exec(function (err, record) {
 
+
           //find end component
           for (var i = record.length; i >= 0; i--) {
 
-            if (record[i - 1].component_id == end_conversation) {
+            // if property "component_id" return undefined the server we frost,
+            // So in case of undefined this value will auto converted into null
+            var component_id = record[i - 1].component_id || 0;
+
+            if (component_id == end_conversation) {
 
               //console.log("log id of end component: ", record[i-1].log_id);
               index_end_conversation = i - 1;
