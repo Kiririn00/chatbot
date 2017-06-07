@@ -216,7 +216,7 @@ module.exports = {
         async_on = 1,
         async_off = 0,
         top_label_feedback_query = "SELECT label.label_id, label_name, label_score FROM label \n"+
-          "WHERE label_id IN (SELECT label_id FROM bot_log WHERE feedback_id = 1) \n"+
+          "WHERE label_id IN (SELECT label_id FROM bot_log WHERE feedback_id = 1 & bot_log.user_id = "+user_id+") \n"+
           "ORDER BY label.label_score DESC \n"+
           "LIMIT 10",
         top_label_default_query = "SELECT label.label_id, label_name, label_score FROM label \n"+
@@ -242,8 +242,6 @@ module.exports = {
        *
        * */
       function botLogRecord(top_label, conversation_step) {
-
-        console.log("botLogRecord: ", current_conversation);
 
         for (var i = 0; i < conversation_step; i++) {
 
@@ -622,7 +620,7 @@ module.exports = {
           }).exec(function (err, spot_db) {
 
             //send to the fnc that make decision for question or recommend
-            conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation);
+            conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation, top_label);
 
           });
         }
@@ -827,22 +825,6 @@ module.exports = {
         var state_threshold = 55,
           component_id = current_conversation[current_conversation.length - 1].component_id;
 
-
-        function lastBotLogRecord(callback) {
-          var bot_log_query = {
-            select :['label_id'],
-            sort: 'bot_log_id DESC',
-            limit: 10
-          };
-
-          bot_log.find(bot_log_query).exec(function (err, record) {
-            if(err){console.log(err);}
-            else {
-              callback(null, record[0].label_id);
-            }
-          });
-        }
-
         /*
          * feature: reference the type of feedback and generate conversation from ref.
          * parameter:
@@ -880,6 +862,8 @@ module.exports = {
           if (cosine_degree < state_threshold) {//answer question
             //userFeedback(current_conversation, current_conversation.length, spot_id);
 
+            console.log("top_label_records: ", top_label_records);
+
             makeLog(end_conversation, end_recommend_component, async_off);
             botLogRecord(top_label_records, current_conversation.length);
 
@@ -900,8 +884,7 @@ module.exports = {
         }
 
         async.waterfall([
-          lastBotLogRecord,
-          recordFeedback,
+          //recordFeedback,
           thresholdDecision
         ],function (err, result) {
 
@@ -956,7 +939,8 @@ module.exports = {
 
             // if property "component_id" return undefined the server we frost,
             // So in case of undefined this value will auto converted into null
-            var component_id = record[i - 1].component_id || 0;
+
+            var component_id = record[i - 1].component_id;
 
             if (component_id == end_conversation) {
 
