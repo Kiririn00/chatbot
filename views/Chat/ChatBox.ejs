@@ -1,72 +1,104 @@
-<h2>Chat bot Hikari-Chan Version 0.0.8</h2>
-<br/>
+<div class="container">
 
-<div class="chat">
-  <p class="them">
-    OK we will begin to chat
-  </p>
-
-  <p class="me">
-    Roger
-  </p>
-
-  <p class="them">
-   So I am User
-  </p>
-
-  <p class="me">
-   And I am bot
-  </p>
-
-  <p class="them">
-   Let's start!
-  </p>
-
-  <p class="me">
-    OK!
-  </p>
-
+  <h2>Chat bot Hikari-Chan Version 0.0.13</h2>
+  <br/>
 </div>
 
-
-<h2></h2>
 <div class="container">
-  <form id="send_message" action="#" >
+
+  <div class="chat">
+  <div class="alert alert-success text-right">
+    OK we will begin to chat
+  </div>
+
+  <div class="alert alert-warning">
+    Roger
+  </div>
+
+  <div class="alert alert-success text-right">
+    So I am User
+  </div>
+
+  <div class="alert alert-warning">
+    And I am bot
+  </div>
+
+  <div class="alert alert-success text-right">
+    Let's start!
+  </div>
+
+  <div class="alert alert-warning">
+    OK!
+  </div>
+</div>
+
+  <form class="form-control" id="send_message" action="#" >
     <input type="hidden" id="user_id" value="<%= user_id %>">
     <div id="chat_textarea">
+
       <div id="chat-form">
-        <label for="chat-textarea">Write something</label><br>
-        <textarea id="chat-textarea"></textarea><br>
-        <input class="btn btn-default" type="submit" id="chat-send-button"><br>
-        <button type="button" id="reset_progress" class="btn btn-default">Reset Progress</button>
+
+        <div class="form-group">
         <label for="activate-feedback-component">Feedback status</label>
-        <input type="checkbox" id="activate-feedback-component" value=1 >
+        <input class="form-control" type="checkbox" checked data-toggle="toggle" id="activate-feedback-component" value=1 >
+        </div>
+
+        <div class="form-group">
+        <label for="threshold">Threshold (default is 55) </label>
+        <input value="55" id="threshold" type="number" class="form-control">
+        </div>
+
+        <div class="form-group">
+        <label for="chat-textarea">Write something</label><br>
+        <textarea class="form-control" id="chat-textarea"></textarea><br>
+        </div>
+
+        <div class="form-group">
+        <input class="btn btn-primary" type="submit" id="chat-send-button"><br>
+        </div>
+
       </div>
+
     </div>
+
   </form>
+
+
+
 </div>
+
+<br><br>
+<hr>
 
 <div class="container">
 
-  <h2> Add new log</h2>
+  <h2>Debug Console</h2>
 
-  <form id="add_log" action="/Chat/AddLog" method="post">
-    <div class="form-group">
-      <label for="question">Question</label>
-      <input type="text" class="form-control" id="question">
-    </div>
-    <div class="form-group">
-      <label for="answer">Answer</label>
-      <input type="text" class="form-control" id="answer">
-    </div>
-    <div class="form-group">
-      <label for="component">Component</label>
-      <select class="form-control" id="component">
-      </select>
-    </div>
-    <button type="submit" id="submit" class="btn btn-primary">Submit</button>
-    <button type="reset" id="reset" class="btn btn-default">Reset</button>
-  </form>
+  <hr>
+
+  <h4>Current Top label</h4>
+
+  <span class="bg-inverse text-white" id="top_label_id"></span>
+  <span class="bg-inverse text-white" id="top_label_name"></span>
+
+  <hr>
+
+  <h4>Calculate Table</h4>
+
+  <table class="table">
+    <thead>
+    <tr>
+      <th>#</th>
+      <th>Spot Id</th>
+      <th>User Vector</th>
+      <th>Spot Vector</th>
+      <th>Cosine Degree</th>
+    </tr>
+    </thead>
+    <tbody id="debug_log">
+
+    </tbody>
+  </table>
 
 </div>
 

@@ -111,30 +111,72 @@ function doConversation() {
         progress_counter = 0,
         feedback_switch = $send_message_form.find('input#activate-feedback-component:checked').val(),
         msg = $text.val(),
+        table_highlight_counter = 0,
         get_data = {
           msg: msg,
           feedback_switch: feedback_switch,
           user_id: $send_message_form.find('input#user_id').val()
         };
 
-        console.log(feedback_switch);
+        console.log("feedback switch status: ", feedback_switch);
 
       $text.val('');//clear textarea
 
       //popup message that user input
       $(".chat").append(
         //text is detail that user input
-        '<p class="them"> ' + msg + '</p>'
+        '<div class="alert alert-success text-right"> ' + msg + '</div>'
       );
 
       io.socket.get('/Chat/TalkSession', get_data, function (data) {
 
+        console.log("data from server: ", data);
+
         progress_counter = conversationProgress();
 
+        //print result from recommendation from server
         $(".chat").append(
           //text is detail that bot response
-          '<p id="process" class="me"> ' + data.answer + '</p>'
+          '<div id="process" class="alert alert-warning"> ' + data.answer + '</div>'
         );
+
+        //print current top label
+        $('span#top_label_id').append(data.top_label.label_id.toString());
+        $('span#top_label_name').append(data.top_label.label_name.toString());
+
+        //print debug data on the table
+
+        try {
+          for (var i = 0; i < data.spot_vector.length; i++) {
+
+            if(i==0) {
+              $('tbody#debug_log').append(
+                '<tr class="table-success">' +
+                '<th scope="row">' + (i + 1) + '</th>' +//number of row
+                '<td >' + data.spot_id[i] + '</td>' +//spot id
+                '<td >' + data.user_vector + '</td>' +//user vector
+                '<td >' + data.spot_vector[i] + '</td>' +//spot vector
+                '<td >' + data.cosine_degree[i] + '</td>' +
+                '</tr>'
+              );
+            }
+            else{
+              $('tbody#debug_log').append(
+                '<tr>' +
+                '<th scope="row">' + (i + 1) + '</th>' +//number of row
+                '<td>' + data.spot_id[i] + '</td>' +//spot id
+                '<td>' + data.user_vector + '</td>' +//user vector
+                '<td>' + data.spot_vector[i] + '</td>' +//spot vector
+                '<td>' + data.cosine_degree[i] + '</td>' +
+                '</tr>'
+              );
+            }
+          }
+        }
+        catch(error){
+          console.log("still not calculate", error);
+        }
+
 
         if(data.feedback_question != null){// if bot ask for feedback
 
@@ -142,7 +184,7 @@ function doConversation() {
 
           $(".chat").append(
             //text is detail that bot response
-            '<p id="process" class="me"> ' + data.feedback_question + '</p>'
+            '<p id="process" class="bg-success text-white"> ' + data.feedback_question + '</p>'
           );
         }
 

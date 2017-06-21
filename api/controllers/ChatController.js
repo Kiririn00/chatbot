@@ -260,6 +260,24 @@ module.exports = {
       }//end func
 
       /*
+      * feature: find the spot name by input the spot id
+      * parameter:
+      *   integer -> spot id
+      * */
+      function findSpotName(spot_id, callback) {
+
+        var spot_name_query = {
+          select:'spot_name',
+          where:{spot_id: spot_id}
+        };
+
+        spot.find(spot_name_query).exec(function (err, spot_name) {
+          callback(null, spot_id);
+        });
+
+      }
+
+      /*
        * feature: spot recommendation system
        * parameter:
        *   1.) array ->  user's input conversation detail
@@ -281,10 +299,9 @@ module.exports = {
          *   2.) array -> db's label frequency(all user's data)
          * return: array -> cosine
          * */
-        function algorithmCalculate(user_label_score, db_spot_label_frequency) {
+        function algorithmCalculate(user_label_score, db_spot_label_frequency, spot_id) {
 
-          var spot_weight = [],
-            spot_number = db_spot_label_frequency.length,
+          var spot_number = db_spot_label_frequency.length,
             result;
 
           function similarCosineCase() {
@@ -294,12 +311,15 @@ module.exports = {
 
             for (var i = 0; i < spot_number; i++) {
 
-              console.log(user_label_score, db_spot_label_frequency[i].matrix);
+              console.log(db_spot_label_frequency[i].spot_id,user_label_score, db_spot_label_frequency[i].matrix);
 
               cosine[i] = similarity(user_label_score, db_spot_label_frequency[i].matrix);
               cosine_degree[i] = {
                 spot_id: db_spot_label_frequency[i].spot_id,
-                cosine_degree: Math.acos(cosine[i]) * (180 / Math.PI)
+                cosine_degree: Math.acos(cosine[i]) * (180 / Math.PI),
+                user_vector: user_label_score,
+                spot_vector: db_spot_label_frequency[i].matrix
+
               };
 
             }
@@ -310,6 +330,7 @@ module.exports = {
 
           result = similarCosineCase();
 
+          //sort for cosine degree in DESC
           result.sort(function (a, b) {
 
             if (a.cosine_degree < b.cosine_degree) {
@@ -325,11 +346,11 @@ module.exports = {
 
           });
 
-          console.log(result);
+          console.log("result: ", result);
 
           return result;
 
-        }
+        }//end function
 
         /*
          * feature: use for show name of any id and what it calculate
@@ -520,7 +541,7 @@ module.exports = {
             non_update_spot_vectors = [],
             update_vector;
 
-          console.log("article_record: ", article_records, "spot_label_matrix: " ,spot_label_matrix);
+          //console.log("article_record: ", article_records, "spot_label_matrix: " ,spot_label_matrix);
 
           function makeUpdateSpotVectors(update_spot_vector_index_sum) {
             var index_num = update_spot_vector_index_sum.length,
@@ -610,17 +631,38 @@ module.exports = {
 
           var spot_label_matrix_update = updateMatrix(article_records, spot_label_matrix);
 
-          algorithm_result = algorithmCalculate(label_score, spot_label_matrix_update);
+          algorithm_result = algorithmCalculate(label_score, spot_label_matrix_update, spot_id);
 
-          //console.log("algorithm_result: " + algorithm_result[0].spot_id);
+          console.log("algorithm_result: " + algorithm_result[0].spot_id);
 
           spot.find({
             select: ['spot_name'],
             where: {spot_id: algorithm_result[0].spot_id}
           }).exec(function (err, spot_db) {
 
+            var spot_vector = [],
+              spot_vector_id = [],
+              cosine_degree = [];
+
+            //make a spot variables
+            for(var l=0; l<algorithm_result.length; l++){
+              spot_vector[l] = algorithm_result[l].spot_vector;
+              spot_vector_id[l] = algorithm_result[l].spot_id;
+              cosine_degree[l] = algorithm_result[l].cosine_degree;
+            }
+
             //send to the fnc that make decision for question or recommend
-            conversationDecision(algorithm_result[0].cosine_degree, spot_db[0].spot_name, algorithm_result[0].spot_id, current_conversation, top_label);
+            conversationDecision(
+              algorithm_result[0].cosine_degree,
+              spot_db[0].spot_name,
+              algorithm_result[0].spot_id,
+              current_conversation,
+              top_label,
+              algorithm_result[0].user_vector,
+              spot_vector,
+              spot_vector_id,
+              cosine_degree
+            );
 
           });
         }
@@ -755,7 +797,7 @@ module.exports = {
        *  2.) if not there has to be in 2 case.
        *  3.)
        * */
-      function botAskQuestion(current_conversation, conversation_step) {
+      function botAskQuestion(current_conversation, conversation_step, top_label_records, user_vector, spot_vector, spot_id, spot_name, spot_vector_id, cosine_degree) {
 
         /*
          *
@@ -769,17 +811,18 @@ module.exports = {
 
           //for first time that bot ask user.There no need to make user vector
           if (conversation_step == 2) {
-            callback(null, top_label.label_id[0], top_label.label_name[0]);
+            callback(null, top_label.label_id[0], top_label.label_name[0], top_label, cosine_degree);
           }
           else {
             if(question_num < add_default_length) {// range of the default label. It mean can make question
 
                 makeUserMatrix(current_conversation, conversation_step);
-                callback(null, top_label.label_id[question_num], top_label.label_name[question_num]);
+                callback(null, top_label.label_id[question_num], top_label.label_name[question_num], top_label, cosine_degree);
 
             }
             else{// when have noting to ask user . end of 10 dimension
               makeLog(end_state, end_recommend_component, async_off);
+              botLogRecord(top_label, conversation_step);
               return res.json({
                 answer: "Can't find your suit location. Please try again"
               });
@@ -794,10 +837,15 @@ module.exports = {
           feedbackLabel,
           generateTopLabel,
           chooseLabel
-        ], function (err, label_id, label_name) {
+        ], function (err, label_id, label_name, top_label, cosine_degree) {
 
           return res.json({
-            answer: "Do you interested in " + label_name + "?"
+            answer: "Do you interested in " + label_name + "?",
+            user_vector: user_vector,
+            spot_vector: spot_vector,
+            spot_id: spot_vector_id,
+            top_label: top_label,
+            cosine_degree: cosine_degree
           });
         });//end async
 
@@ -819,10 +867,10 @@ module.exports = {
        *  2.) before threshold, bot will make question
        *  3.) after overcome threshold, bot will make answer
        * */
-      function conversationDecision(cosine_degree, spot_name, spot_id, current_conversation, top_label_records) {
+      function conversationDecision(cosine_degree, spot_name, spot_id, current_conversation, top_label_records, user_vector, spot_vector, spot_vector_id, cosine_degree_vector) {
 
         //note: we should make some algorithm for decide threshold
-        var state_threshold = 55,
+        var state_threshold = 60,
           component_id = current_conversation[current_conversation.length - 1].component_id;
 
         /*
@@ -874,7 +922,17 @@ module.exports = {
           }
           //note: even length and threshold is ==, It return false. Bug?
           else if (cosine_degree >= state_threshold) {//ask question
-            botAskQuestion(current_conversation, current_conversation.length, top_label_records);
+            botAskQuestion(
+              current_conversation,
+              current_conversation.length,
+              top_label_records,
+              user_vector,
+              spot_vector,
+              spot_id,
+              spot_name,
+              spot_vector_id,
+              cosine_degree_vector
+            );
           }
           else {
             return res.json({
