@@ -199,6 +199,7 @@ module.exports = {
         component_name,
         msg = req.param('msg'),
         feedback_switch = req.param('feedback_switch'),
+        feedback_mode = req.param('feedback_mode'),
         feedback_switch_active = 1,
         user_id = req.param('user_id'),
         log_query = {select: ['component_id', 'question', 'answer'], where: {question: msg}},
@@ -241,41 +242,59 @@ module.exports = {
        *  integer -> the user id (currently using the system)
        *
        * */
-      function botLogRecord(top_label, conversation_step) {
+      function botLogRecord(top_label, conversation_step, current_conversation) {
 
-        for (var i = 0; i < conversation_step; i++) {
+        var i,
+          bot_log_query,
+          //feedback_mode = 1: the feedback is active
+          //feedback_mode = 0: the feedback is non-active
+          feedback_mode_on = 1,
+          feedback_mode_off = 0,
+          record_counter = 0;
 
-          var bot_log_query = [{
-            label_id: top_label.label_id[i],
-            user_id: user_id,
-            state_id: middle_state,
-            label_score: 101
-          }];
+        console.log("current_conversation: ", current_conversation);
 
-          bot_log.create(bot_log_query).exec(function (err, records) {
-            console.log("make new bot's log of: ", records);
-          });
+        function makeBotLog(feedback_mode, record_counter){
 
-        }
+            bot_log_query = [{
+              label_id: top_label.label_id[record_counter],
+              user_id: user_id,
+              state_id: middle_state,
+              label_score: 101,
+              feedback_id:feedback_mode
+            }];
+
+            bot_log.create(bot_log_query).exec(function (err, records) {
+              console.log("make new bot's log of: ", records);
+            });
+
+        }//end func
+
+        //check the feedback mode's switch
+        for (i = 0; i < conversation_step; i++) {
+
+          if (feedback_mode == 1) {
+
+              if (current_conversation[i].component_id == 4) {
+                record_counter++;
+                makeBotLog(feedback_mode_on, record_counter);
+              }//end if
+              else if(current_conversation[i].component_id == 5){
+                record_counter++;
+                makeBotLog(feedback_mode_off, record_counter);
+              }
+
+          }//end if
+          else if (feedback_mode == 0) {
+            makeBotLog(feedback_mode_off, i);
+          }
+          else {
+            console.error("can't find feedback_mode");
+          }
+
+        }//end for loop
+
       }//end func
-
-      /*
-      * feature: find the spot name by input the spot id
-      * parameter:
-      *   integer -> spot id
-      * */
-      function findSpotName(spot_id, callback) {
-
-        var spot_name_query = {
-          select:'spot_name',
-          where:{spot_id: spot_id}
-        };
-
-        spot.find(spot_name_query).exec(function (err, spot_name) {
-          callback(null, spot_id);
-        });
-
-      }
 
       /*
        * feature: spot recommendation system
@@ -311,7 +330,7 @@ module.exports = {
 
             for (var i = 0; i < spot_number; i++) {
 
-              console.log(db_spot_label_frequency[i].spot_id,user_label_score, db_spot_label_frequency[i].matrix);
+              //console.log(db_spot_label_frequency[i].spot_id,user_label_score, db_spot_label_frequency[i].matrix);
 
               cosine[i] = similarity(user_label_score, db_spot_label_frequency[i].matrix);
               cosine_degree[i] = {
@@ -346,7 +365,7 @@ module.exports = {
 
           });
 
-          console.log("result: ", result);
+          //console.log("result: ", result);
 
           return result;
 
@@ -383,7 +402,7 @@ module.exports = {
                   match_label_frequency: frequency
                 });
 
-                sails.log("debug: ", debug_result);
+                //sails.log("debug: ", debug_result);
               }
 
             });
@@ -439,7 +458,6 @@ module.exports = {
 
         }//end fnc
 
-
         /*
         *
         * feature: find the spot that match to the top label
@@ -470,7 +488,7 @@ module.exports = {
                     spot_id[counter] = article_records[i].spot_id;
                     label_id[counter] = article_records[i].label_id;
                     counter++;
-                    console.log("match spot&label", spot_id, label_id);
+                    //console.log("match spot&label", spot_id, label_id);
 
                   }
                 }//end loop
@@ -606,7 +624,7 @@ module.exports = {
 
           }//end loop
 
-          console.log("update_spot_vector_index_sum", update_spot_vector_index_sum);
+          //console.log("update_spot_vector_index_sum", update_spot_vector_index_sum);
           var spot_label_matrix_update = makeUpdateSpotVectors(update_spot_vector_index_sum);
 
           return spot_label_matrix_update;
@@ -622,7 +640,7 @@ module.exports = {
         function makeMatrix(spot_id, label_id, top_label, add_default_length, label_score, article_records ,callback) {
 
           //debug the spot id that match with the label for recommend
-          console.log("spot id: ", spot_id);
+          //console.log("spot id: ", spot_id);
 
           for (var i = 0; i < spot_id.length; i++) {
             //this function will update the value of spot_label_matrix.
@@ -633,7 +651,7 @@ module.exports = {
 
           algorithm_result = algorithmCalculate(label_score, spot_label_matrix_update, spot_id);
 
-          console.log("algorithm_result: " + algorithm_result[0].spot_id);
+          //console.log("algorithm_result: " + algorithm_result[0].spot_id);
 
           spot.find({
             select: ['spot_name'],
@@ -665,7 +683,7 @@ module.exports = {
             );
 
           });
-        }
+        }//end func makeMatrix
 
         async.waterfall([
           defaultLabel,
@@ -712,7 +730,7 @@ module.exports = {
 
         }//end loop
 
-        console.log("user's label: ", label_score);
+        //console.log("user's label: ", label_score);
         return label_score;
 
       }//end fnc
@@ -763,8 +781,8 @@ module.exports = {
           add_default_length = calculate_dimension-feedback_label_length,
           top_label = {label_id:[], label_name:[]};
 
-        console.log("add_default_length: ", add_default_length);
-        console.log("default_label_records: ", default_label_records);
+        //console.log("add_default_length: ", add_default_length);
+        //console.log("default_label_records: ", default_label_records);
 
 
         if(default_label_records.length < 10){
@@ -787,7 +805,7 @@ module.exports = {
 
         callback(null, top_label, add_default_length);
 
-      }
+      }//end func
 
       /*
        * feature: generate the question of the chat-bot. this function will active
@@ -807,7 +825,7 @@ module.exports = {
 
           var question_num = countQuestion(current_conversation, conversation_step);
 
-          console.log("top label id: ", top_label);
+          //console.log("top label id: ", top_label, "spot_vector_id: ", spot_vector_id, "spot_name: ", spot_name);
 
           //for first time that bot ask user.There no need to make user vector
           if (conversation_step == 2) {
@@ -830,22 +848,52 @@ module.exports = {
 
          }//end else
 
-        }//end func
+        }//end func chooseLabel
+
+        function findLabelName(label_id, label_name, top_label, cosine_degree, callback) {
+
+          var spot_vector_name = [];
+
+          try {
+            //for (i = 0; i < spot_vector_id.length; i++) {
+
+              var spot_name_query = {
+                select: ['spot_name'],
+                where: {spot_id: spot_vector_id}
+              };
+
+              spot.find(spot_name_query).exec(function (err, return_spot_vector_name) {
+                //console.log("spot_vector_name: ", return_spot_vector_name);
+                spot_vector_name.push(return_spot_vector_name);
+
+                callback(null, label_id, label_name, top_label, cosine_degree, spot_vector_name);
+
+              });
+            //}
+          }
+          catch(err){
+            console.log("Still not calculate", err);
+          }
+
+        }
 
         async.waterfall([
           defaultLabel,
           feedbackLabel,
           generateTopLabel,
-          chooseLabel
-        ], function (err, label_id, label_name, top_label, cosine_degree) {
+          chooseLabel,
+          findLabelName
+        ], function (err, label_id, label_name, top_label, cosine_degree, spot_vector_name) {
 
           return res.json({
             answer: "Do you interested in " + label_name + "?",
             user_vector: user_vector,
             spot_vector: spot_vector,
             spot_id: spot_vector_id,
+            spot_name: spot_vector_name,
             top_label: top_label,
-            cosine_degree: cosine_degree
+            cosine_degree: cosine_degree,
+            current_conversation: current_conversation
           });
         });//end async
 
@@ -873,51 +921,27 @@ module.exports = {
         var state_threshold = 60,
           component_id = current_conversation[current_conversation.length - 1].component_id;
 
-        /*
-         * feature: reference the type of feedback and generate conversation from ref.
-         * parameter:
-         *   integer -> log id
-         *   integer -> feedback type <6:like>, <7:dislike> 6 and 7 are reference
-         *              from the value of like_conversation and dislike_conversation.
-         * */
-        function recordFeedback(label_id, callback) {
-
-          var feedback_query_insert = [{
-            label_id: label_id
-          }];
-
-          if(component_id == 2) {// if user answer in "yes" in start
-
-            feedback.create(feedback_query_insert).exec(function (err, record) {
-              console.log("record the feedback: ", record);
-            });
-
-          }
-          else if(component_id == 4) {// if user answer in "yes"
-
-            feedback.create(feedback_query_insert).exec(function (err, record) {
-              console.log("record the feedback: ", record);
-            });
-
-          }
-
-          callback(null, label_id);
-
-        }
 
         function thresholdDecision(label_id, callback) {
 
           if (cosine_degree < state_threshold) {//answer question
             //userFeedback(current_conversation, current_conversation.length, spot_id);
 
-            console.log("top_label_records: ", top_label_records);
+            //console.log("top_label_records: ", top_label_records);
 
             makeLog(end_conversation, end_recommend_component, async_off);
-            botLogRecord(top_label_records, current_conversation.length);
+            botLogRecord(top_label_records, current_conversation.length, current_conversation);
 
             return res.json({
               answer: "Then I recommend: " + spot_name,
-              feedback_question: "Like or Dislike?"
+              feedback_question: "Like or Dislike?",
+              user_vector: user_vector,
+              spot_vector: spot_vector,
+              spot_id: spot_vector_id,
+              spot_name: spot_name,
+              top_label: top_label_records,
+              cosine_degree: cosine_degree,
+              current_conversation: current_conversation
             });
           }
           //note: even length and threshold is ==, It return false. Bug?
@@ -949,8 +973,6 @@ module.exports = {
         })
 
       }//end fnc
-
-
 
       /*
        * feature: make conversation for recommend spot of chat-bot
@@ -1018,8 +1040,8 @@ module.exports = {
 
           }
 
-          console.log("current conversation: ", current_conversation);
-          console.log("component id: ", conversation.component_id);
+          //console.log("current conversation: ", current_conversation);
+          //console.log("component id: ", conversation.component_id);
 
           //conversation's answer decide
           if (current_conversation.length == 2 && conversation.component_id == 2) {//when start
@@ -1085,7 +1107,7 @@ module.exports = {
             callback(null, record);
           }
           else if (async_status == async_off) {
-            console.log("add log: ", record);
+            //console.log("add log: ", record);
           }
 
         });

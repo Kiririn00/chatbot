@@ -73,6 +73,8 @@ module.exports = {
 
   Register: function (req, res) {
 
+    res.locals.layout = 'login_layout';
+
     //check if post data had request
     if(req.method=='POST') {
       //get post data from view
@@ -89,9 +91,12 @@ module.exports = {
         console.log('create data:'+ created.username);
       });
 
-    }//end if post
+      return res.view('user/Login');
 
-    //render view
-    return res.view();
+    }//end if post
+    else {
+      //render view
+      return res.view();
+    }
   }
 };

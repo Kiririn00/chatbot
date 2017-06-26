@@ -39,8 +39,13 @@
       <div id="chat-form">
 
         <div class="form-group">
-        <label for="activate-feedback-component">Feedback status</label>
-        <input class="form-control" type="checkbox" checked data-toggle="toggle" id="activate-feedback-component" value=1 >
+        <label for="activate-feedback-component">Feedback status (normally, do not check)</label>
+        <input class="form-control" name="feedback_switch" type="checkbox" id="activate-feedback-component" value=1 >
+        </div>
+
+        <div class="form-group">
+          <label for="activate-feedback-component">Feedback Mode</label>
+          <input class="form-control" id="feedback_mode" name="feedback_mode" type="checkbox" checked value=1 >
         </div>
 
         <div class="form-group">
@@ -90,6 +95,7 @@
     <tr>
       <th>#</th>
       <th>Spot Id</th>
+      <th>Spot Name</th>
       <th>User Vector</th>
       <th>Spot Vector</th>
       <th>Cosine Degree</th>
