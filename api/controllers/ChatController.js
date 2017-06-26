@@ -250,11 +250,13 @@ module.exports = {
           //feedback_mode = 0: the feedback is non-active
           feedback_mode_on = 1,
           feedback_mode_off = 0,
-          record_counter = 0;
+          record_counter = -1;
 
         console.log("current_conversation: ", current_conversation);
 
         function makeBotLog(feedback_mode, record_counter){
+
+          console.log("record_counter: ", record_counter);
 
             bot_log_query = [{
               label_id: top_label.label_id[record_counter],
@@ -286,7 +288,12 @@ module.exports = {
 
           }//end if
           else if (feedback_mode == 0) {
-            makeBotLog(feedback_mode_off, i);
+            if (current_conversation[i].component_id == 4) {
+              makeBotLog(feedback_mode_off, i);
+            }//end if
+            else if(current_conversation[i].component_id == 5){
+              makeBotLog(feedback_mode_off, i);
+            }
           }
           else {
             console.error("can't find feedback_mode");
@@ -418,8 +425,9 @@ module.exports = {
          *   2.) integer -> length of current conversation
          * res return:
          *   array -> bot answer
+         *  parent function: labelRecommend
          * */
-        function makeUserMatrix(top_label, add_default_length ,callback) {
+        function makeRecommendUserMatrix(top_label, add_default_length ,callback) {
 
           var label_score_counter = 0,
             feedback_label_score_counter = 9,
@@ -689,7 +697,7 @@ module.exports = {
           defaultLabel,
           feedbackLabel,
           generateTopLabel,
-          makeUserMatrix,
+          makeRecommendUserMatrix,
           findArticle,
           makeMatrix
         ], function (err, result) {
@@ -783,7 +791,6 @@ module.exports = {
 
         //console.log("add_default_length: ", add_default_length);
         //console.log("default_label_records: ", default_label_records);
-
 
         if(default_label_records.length < 10){
           makeLog(end_state, end_recommend_component, async_off);
