@@ -235,11 +235,17 @@ module.exports = {
 
       /*
        * feature: record the bot's action (recommend,ask label, etc)
+       * logic:
+       *  1.) First talk the current conversation between user and bot
+       *  2.) loop the number of the conversation
+       *  3.) In loop, insert the record in to DB one by one
+       *  4.) When record, if user say yes the feedback should be 1 and no should be 0
        * parameter:
        *  integer ->the label id. This label is come from the currently label
        *         bot is asking to the user.
        *  string -> the label name for send to the returnQuestion function.
        *  integer -> the user id (currently using the system)
+       * note: if the conversation has benn interrupted by any case this function should not be call.
        *
        * */
       function botLogRecord(top_label, conversation_step, current_conversation) {
@@ -254,7 +260,7 @@ module.exports = {
 
         console.log("current_conversation: ", current_conversation);
 
-        function makeBotLog(feedback_mode, record_counter){
+        function makeBotLog(feedback_mode, record_counter, component_id){
 
           console.log("record_counter: ", record_counter);
 
@@ -263,7 +269,9 @@ module.exports = {
               user_id: user_id,
               state_id: middle_state,
               label_score: 101,
-              feedback_id:feedback_mode
+              feedback_id:feedback_mode,
+              component_id: component_id,
+              process_step: record_counter+1
             }];
 
             bot_log.create(bot_log_query).exec(function (err, records) {
@@ -279,20 +287,43 @@ module.exports = {
 
               if (current_conversation[i].component_id == 4) {
                 record_counter++;
-                makeBotLog(feedback_mode_on, record_counter);
+                //makeBotLog(feedback_mode_on, record_counter, current_conversation[i].component_id);
+
+                async.waterfall([
+                  async.apply(makeBotLog,  feedback_mode_on, record_counter, current_conversation[i].component_id)
+                ],function (err, result) {
+
+                })
               }//end if
               else if(current_conversation[i].component_id == 5){
                 record_counter++;
-                makeBotLog(feedback_mode_off, record_counter);
+                //makeBotLog(feedback_mode_off, record_counter, current_conversation[i].component_id);
+
+                async.waterfall([
+                  async.apply(makeBotLog,  feedback_mode_off, record_counter, current_conversation[i].component_id)
+                ],function (err, result) {
+
+                })
               }
 
           }//end if
           else if (feedback_mode == 0) {
             if (current_conversation[i].component_id == 4) {
-              makeBotLog(feedback_mode_off, i);
+
+              async.waterfall([
+                async.apply(makeBotLog,  feedback_mode_off, i, current_conversation[i].component_id)
+              ],function (err, result) {
+
+              })
+
             }//end if
             else if(current_conversation[i].component_id == 5){
-              makeBotLog(feedback_mode_off, i);
+
+              async.waterfall([
+                async.apply(makeBotLog,  feedback_mode_off, i, current_conversation[i].component_id)
+              ],function (err, result) {
+
+              })
             }
           }
           else {
@@ -506,7 +537,7 @@ module.exports = {
               if(spot_id.length == 0) {
 
                 makeLog(end_state, end_recommend_component, async_off);
-                botLogRecord(top_label, current_conversation.length -2);
+                botLogRecord(top_label, current_conversation.length -2, current_conversation);
                 return res.json({
                   answer: "Can't find spot that suit from the label_id in article table."
                 });
@@ -847,7 +878,7 @@ module.exports = {
             }
             else{// when have noting to ask user . end of 10 dimension
               makeLog(end_state, end_recommend_component, async_off);
-              botLogRecord(top_label, conversation_step);
+              botLogRecord(top_label, conversation_step, current_conversation.length -2);
               return res.json({
                 answer: "Can't find your suit location. Please try again"
               });
@@ -907,12 +938,38 @@ module.exports = {
       }//end func
 
       /*
+      * feature: find the number of the current conversation
+       * parameter:
+       *  array -> the current conversation
+       *  array -> the component that want to find
+      * */
+      function numberOfConversationProcess(current_conversation, component_condition) {
+
+        var current_conversation_num = current_conversation.length,
+        component_condition_num = component_condition.length,
+        conversation_process_num = 0;
+
+        for(var i=0; i<current_conversation_num; i++ ){
+
+          for(var l=0; l<component_condition_num; l++){
+            if(current_conversation[i].component_id == component_condition[l]){
+              conversation_process_num++;
+            }
+          }
+
+        }//end loop
+
+        return conversation_process_num;
+
+      }//end func
+
+      /*
        * feature: make answer or question from user
        * parameter:
        *  1.) integer -> cosine degree from spot weight calculate func
        *  2.) string ->
        * call func:
-       *  1.) botAnswerQuestion
+       *  1.) botAskQuestion
        * res return
        *   array:
        *     1.) string -> error text
@@ -925,9 +982,37 @@ module.exports = {
       function conversationDecision(cosine_degree, spot_name, spot_id, current_conversation, top_label_records, user_vector, spot_vector, spot_vector_id, cosine_degree_vector) {
 
         //note: we should make some algorithm for decide threshold
-        var state_threshold = 60,
-          component_id = current_conversation[current_conversation.length - 1].component_id;
+        var state_threshold = 55,
+          component_id = current_conversation[current_conversation.length - 1].component_id,
+          conversation_num = current_conversation.length;
 
+        /*
+        * feature: count the process between user and bot
+        * */
+        function recordConversationProcess(){
+
+          var last_conversation_num = conversation_num - 1,
+            log_id = current_conversation[last_conversation_num].log_id,
+            component_condition = [yes_conversation, no_conversation],
+            counted_process;
+
+          //find number of process
+          counted_process = numberOfConversationProcess(current_conversation, component_condition);
+
+          console.log("counted_process: ", counted_process);
+
+          create_query = {
+            user_id: user_id,
+            log_id: log_id,
+            process_num: counted_process
+          };
+
+          Conversation_Process_Log.create(create_query).exec(function (err, insert_record) {
+
+          });
+
+
+        }//end func
 
         function thresholdDecision(label_id, callback) {
 
@@ -938,6 +1023,7 @@ module.exports = {
 
             makeLog(end_conversation, end_recommend_component, async_off);
             botLogRecord(top_label_records, current_conversation.length, current_conversation);
+            recordConversationProcess();
 
             return res.json({
               answer: "Then I recommend: " + spot_name,
@@ -953,7 +1039,7 @@ module.exports = {
           }
           //note: even length and threshold is ==, It return false. Bug?
           else if (cosine_degree >= state_threshold) {//ask question
-            botAskQuestion(
+            botAskQuestion(//call function for cal and return the question
               current_conversation,
               current_conversation.length,
               top_label_records,

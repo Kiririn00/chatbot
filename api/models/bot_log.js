@@ -24,7 +24,14 @@ module.exports = {
     feedback_id:{
       type: 'integer'
     },
+    component_id:{
+      type: 'integer'
+    },
     label_score:{
+      type: 'integer',
+      size: 200
+    },
+    process_step:{
       type: 'integer',
       size: 200
     }
