@@ -34,10 +34,8 @@ module.exports = {
         user_query = {
           select: ['user_id'],
           where: {
-            or: [
-              {username: username_view},
-              {password: password_view}
-            ]
+              username: username_view,
+              password: password_view
           }
         };
 
@@ -46,7 +44,7 @@ module.exports = {
         User.find(user_query).exec(function find(err, found) {
 
           if(err){console.log(err);}
-          console.log(found);
+          console.log("found the user id: ", found);
 
           if (found.length == 0) {//login failed
             return res.json({user_id: "not found"});

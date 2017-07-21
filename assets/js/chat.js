@@ -112,6 +112,7 @@ function doConversation() {
         feedback_switch = $send_message_form.find('input#activate-feedback-component:checked').val(),
         feedback_mode_activate = $send_message_form.find('input#feedback_mode:checked').val(),
         feedback_mode_non_activate = $send_message_form.find('input#feedback_mode:not(:checked)').val(),
+        threshold = $send_message_form.find('input#threshold').val(),
         feedback_mode,
         msg = $text.val(),
         table_highlight_counter = 0;
@@ -127,7 +128,8 @@ function doConversation() {
           msg: msg,
           feedback_switch: feedback_switch,
           feedback_mode: feedback_mode,
-          user_id: $send_message_form.find('input#user_id').val()
+          user_id: $send_message_form.find('input#user_id').val(),
+          threshold: threshold
         };
 
         console.log("feedback_mode: ", feedback_mode);

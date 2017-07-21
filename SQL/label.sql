@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Feb 07, 2017 at 03:42 PM
+-- Generation Time: Jul 19, 2017 at 01:55 PM
 -- Server version: 10.1.16-MariaDB
 -- PHP Version: 5.5.38
 
@@ -50,7 +50,7 @@ INSERT INTO `label` (`label_id`, `label_name`, `label_score`, `createdAt`, `upda
 (9, 'sushi', 25, NULL, NULL),
 (10, 'playground', 25, NULL, NULL),
 (11, 'white day', 58, NULL, NULL),
-(12, 'department', 96, NULL, NULL),
+(12, 'department', 95, NULL, NULL),
 (13, 'technology', 14, NULL, NULL),
 (14, 'outdoor', 54, NULL, NULL),
 (15, 'oni', 31, NULL, NULL),
@@ -67,7 +67,7 @@ INSERT INTO `label` (`label_id`, `label_name`, `label_score`, `createdAt`, `upda
 (26, 'school', 3, NULL, NULL),
 (27, 'yakuza', 42, NULL, NULL),
 (28, 'robot', 18, NULL, NULL),
-(29, 'flower', 98, NULL, NULL),
+(29, 'flower', 97, NULL, NULL),
 (30, 'lake', 99, NULL, NULL),
 (31, 'bike', 50, NULL, NULL),
 (32, 'stand', 61, NULL, NULL),
@@ -99,7 +99,6 @@ INSERT INTO `label` (`label_id`, `label_name`, `label_score`, `createdAt`, `upda
 (58, 'alien', 62, NULL, NULL),
 (59, 'bar', 85, NULL, NULL),
 (60, 'drive', 85, NULL, NULL),
-(61, 'castle', 97, NULL, NULL),
 (62, 'family', 83, NULL, NULL),
 (63, 'calture', 88, NULL, NULL),
 (64, 'seichi', 90, NULL, NULL),
@@ -107,7 +106,7 @@ INSERT INTO `label` (`label_id`, `label_name`, `label_score`, `createdAt`, `upda
 (66, 'date', 84, NULL, NULL),
 (67, 'dish', 29, NULL, NULL),
 (68, 'romantic', 31, NULL, NULL),
-(69, 'station', 97, NULL, NULL),
+(69, 'station', 95, NULL, NULL),
 (70, 'tv', 3, NULL, NULL),
 (71, 'pokemon go', 19, NULL, NULL),
 (72, 'cheap', 90, NULL, NULL),
@@ -119,12 +118,12 @@ INSERT INTO `label` (`label_id`, `label_name`, `label_score`, `createdAt`, `upda
 (78, 'battle ship', 45, NULL, NULL),
 (79, 'onsen', 92, NULL, NULL),
 (80, 'clamping', 55, NULL, NULL),
-(81, 'label_id', 12, NULL, NULL),
+(81, 'old thing', 12, NULL, NULL),
 (82, 'altium', 81, NULL, NULL),
 (83, 'university', 6, NULL, NULL),
 (84, 'spring', 83, NULL, NULL),
 (85, 'mascot', 23, NULL, NULL),
-(86, 'label_id', 52, NULL, NULL),
+(86, 'Fate/Apocrypha', 52, NULL, NULL),
 (87, 'snow', 38, NULL, NULL),
 (88, 'alone', 30, NULL, NULL),
 (89, 'singer', 14, NULL, NULL),
@@ -134,11 +133,13 @@ INSERT INTO `label` (`label_id`, `label_name`, `label_score`, `createdAt`, `upda
 (93, 'science', 77, NULL, NULL),
 (94, 'office', 79, NULL, NULL),
 (95, 'idol', 15, NULL, NULL),
-(96, 'label_id', 52, NULL, NULL),
-(97, 'not go any more', 69, NULL, NULL),
+(96, 'wood', 52, NULL, NULL),
+(97, 'scary', 69, NULL, NULL),
 (98, 'car', 51, NULL, NULL),
 (99, 'museum', 98, NULL, NULL),
-(100, 'single', 15, NULL, NULL);
+(100, 'single', 15, NULL, NULL),
+(101, 'castle', NULL, NULL, NULL),
+(102, 'sea', NULL, NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -158,7 +159,7 @@ ALTER TABLE `label`
 -- AUTO_INCREMENT for table `label`
 --
 ALTER TABLE `label`
-  MODIFY `label_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `label_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=103;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

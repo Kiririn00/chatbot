@@ -201,6 +201,7 @@ module.exports = {
         feedback_switch = req.param('feedback_switch'),
         feedback_mode = req.param('feedback_mode'),
         feedback_switch_active = 1,
+        threshold = req.param('threshold'),
         user_id = req.param('user_id'),
         log_query = {select: ['component_id', 'question', 'answer'], where: {question: msg}},
         done_conversation = "done recommendation",
@@ -418,7 +419,7 @@ module.exports = {
          * */
         function debugResult(label_id, spot_id, frequency) {
 
-          var spot_query = {select: ['spot_name'], spot_id: spot_id},
+          var spot_query = {select: ['spot_id','spot_name'], spot_id: spot_id},
             label_query = {select: ['label_name'], label_id: label_id},
             debug_result = [];
 
@@ -878,7 +879,7 @@ module.exports = {
             }
             else{// when have noting to ask user . end of 10 dimension
               makeLog(end_state, end_recommend_component, async_off);
-              botLogRecord(top_label, conversation_step, current_conversation.length -2);
+              botLogRecord(top_label, conversation_step - 2, current_conversation);
               return res.json({
                 answer: "Can't find your suit location. Please try again"
               });
@@ -982,7 +983,7 @@ module.exports = {
       function conversationDecision(cosine_degree, spot_name, spot_id, current_conversation, top_label_records, user_vector, spot_vector, spot_vector_id, cosine_degree_vector) {
 
         //note: we should make some algorithm for decide threshold
-        var state_threshold = 55,
+        var state_threshold = threshold,
           component_id = current_conversation[current_conversation.length - 1].component_id,
           conversation_num = current_conversation.length;
 
