@@ -41,7 +41,61 @@ $sudo chmod /<downloaded directory>/+x xampp-osx-5.5.38-1-installer.dmg
 $sudo ./xampp-osx-5.5.38-1-installer.dmg
 ```
 
-##Get started
+**5 Setting a model environment**
+
+Set the connection of the database.
+Sails is a MVC framework,
+which can handle the database schema
+through the model files.
+If we set the model environment correctly.
+The model files will handled the database schema by itself.
+
+All you have to do is set model and 
+the database should works.
+
+First we will set the connection
+between Sails and MySQL.
+Go to connection.js
+
+```sh
+$cd ./chat-bot
+$vim ./config/connecttion.js
+```
+
+Change the below to your DB setting.
+
+```javascript
+module.exports.connections = {
+      mysql: {
+        adapter: 'sails-mysql',
+        host: '<your domain or localhost>',
+        port: "your port(no need '')",
+        user: '<your user(default is root)>',
+        password: '<your password(default is admin or noting)>',
+        database: '<your DB name>',
+        charset   : 'utf8'
+      }
+}
+```
+
+Go to models.js,
+for allow Sails to changed
+the database schema by itself.
+
+Go to the models.js
+```sh
+#Note that your crrent directory is this cloned repository.
+$vim ./config/models.js
+```
+Change the below.
+```javascript
+module.exports.models = {
+  connection: 'mysql',
+  migrate: 'safe'
+};  
+```
+
+## Get started
 
 **1 open [Xampp](https://www.apachefriends.org) 
 with control panel and
