@@ -40,7 +40,6 @@ $sudo wget https://downloads.sourceforge.net/project/xampp/XAMPP%20Linux/5.6.30/
 $sudo chmod /<downloaded directory>/+x xampp-osx-5.5.38-1-installer.dmg
 $sudo ./xampp-osx-5.5.38-1-installer.dmg
 ```
-
 **5 Setting a model environment**
 
 Set the connection of the database.

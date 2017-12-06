@@ -163,15 +163,24 @@ module.exports = {
 	ChatBox: function(req,res){
 
     res.locals.layout = 'chat_layout';
+    
+	  if(req.method === "GET") {
 
-	  if(req.method == "GET") {
+      var user_id = req.param('user_id'),
+        err_code = req.param('err_code');
 
-      var user_id = req.param('user_id');
+      console.log(user_id, err_code);
 
-      if(typeof user_id == "undefined"){return res.view('user/Login');}
+      if(user_id === undefined){
+        return res.view('User/Login');
+      }
       else {
+
+        console.log("get user_id");
+
         return res.view({
-          user_id:user_id
+          user_id: user_id,
+          err_code: err_code
         });
       }
 

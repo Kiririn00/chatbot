@@ -17,6 +17,19 @@ module.exports = {
 		return res.send("Hi there!");
 	},
 
+  Test: function (req,res) {
+
+    String.prototype.isMatch = function(s){
+      return this.match(s) !== null;
+    };
+
+    var myBool = "Ali".isMatch("Ali");
+
+    console.log(myBool);
+
+    return res.json();
+  },
+
   Login : function (req,res){
 
 	  res.locals.layout = 'login_layout';
@@ -37,23 +50,35 @@ module.exports = {
               username: username_view,
               password: password_view
           }
-        };
+        },
+        err_login_failed_mgs = "err-user-login-001",
+        err_login_other = "err-user-login-002";
 
       function passport() {
         //login check
         User.find(user_query).exec(function find(err, found) {
 
+          function loginFailedMessage(err_code) {
+
+            return res.json({
+              user_id: null,
+              err_code: err_code
+            });
+          }
+
           if(err){console.log(err);}
           console.log("found the user id: ", found);
 
           if (found.length == 0) {//login failed
-            return res.json({user_id: "not found"});
+            loginFailedMessage(err_login_failed_mgs);
           }
-          else if (found.length > 0) {
-            return res.json({user_id: found[0].user_id});
+          else if (found.length > 0) {//login success
+            return res.json({
+              user_id: found[0].user_id
+            });//return user id to client
           }
-          else {
-            return res.json({user_id: "error"});
+          else {//unknown case that affect to login form to failed
+            loginFailedMessage(err_login_other);
           }
 
         });//end find
@@ -67,7 +92,7 @@ module.exports = {
       return res.json({user_id: "error not a GET method"});
     }
 
-  },
+  }, //end action
 
   Register: function (req, res) {
 
